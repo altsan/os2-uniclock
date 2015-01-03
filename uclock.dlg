@@ -1,0 +1,165 @@
+#ifndef OS2_INCLUDED
+   #include <os2.h>
+#endif
+DLGINCLUDE 1 "F:\programming\c\uclock\ids.h"
+
+DLGTEMPLATE IDD_ABOUT LOADONCALL MOVEABLE DISCARDABLE
+BEGIN
+    DIALOG  "Product Information", IDD_ABOUT, 1, 1, 196, 65, WS_VISIBLE,
+            FCF_SYSMENU | FCF_TITLEBAR | FCF_CLOSEBUTTON
+            PRESPARAMS PP_FONTNAMESIZE, "9.WarpSans"
+    BEGIN
+        ICON            ID_MAINPROGRAM, IDD_CLOCKLIST, 7, 34, 20, 16
+        DEFPUSHBUTTON   "~OK", DID_OK, 38, 2, 40, 12
+        LTEXT           "Universal Clock", -1, 38, 51, 150, 8
+        LTEXT           "version 0.2", -1, 38, 42, 150, 8
+        GROUPBOX        "", -1, 38, 39, 150, 4
+        LTEXT           "(C) 2015 Alex Taylor", -1, 38, 27, 150, 8
+        LTEXT           "Licensed under the GNU General Public License.", -1,
+                        38, 18, 150, 8
+    END
+END
+
+DLGTEMPLATE IDD_CONFIG LOADONCALL MOVEABLE DISCARDABLE
+BEGIN
+    DIALOG  "Universal Clock - Settings", IDD_CONFIG, 1, 1, 300, 205,
+            WS_VISIBLE, FCF_SYSMENU | FCF_TITLEBAR | FCF_CLOSEBUTTON
+    BEGIN
+        NOTEBOOK        IDD_CFGBOOK, 0, 0, 300, 204, BKS_MAJORTABTOP | BKS_TABBEDDIALOG |
+                        BKS_BUTTONAREA | WS_GROUP
+    END
+END
+
+DLGTEMPLATE IDD_CFGCOMMON LOADONCALL MOVEABLE DISCARDABLE
+BEGIN
+    DIALOG  "", IDD_CFGCOMMON, 1, 1, 245, 161, NOT FS_DLGBORDER
+    BEGIN
+        GROUPBOX        "Appearance", -1, 4, 101, 176, 55
+        AUTOCHECKBOX    "Show title bar", IDD_TITLEBAR, 8, 137, 168, 10
+        //AUTOCHECKBOX    "Show clock borders", IDD_BORDERS, 8, 126, 168, 10
+        LTEXT           "Use compact view below:", -1, 8, 116, 107, 8, DT_VCENTER
+        SPINBUTTON      IDD_VIEWSWITCH, 117, 116, 30, 12, SPBS_MASTER | SPBS_NUMERICONLY
+        LTEXT           "pixels", -1, 149, 116, 28, 8, DT_VCENTER
+        LTEXT           "Compact description width:", -1, 8, 106, 107, 8, DT_VCENTER
+        SPINBUTTON      IDD_DESCWIDTH, 117, 106, 30, 12, SPBS_MASTER | SPBS_NUMERICONLY
+        LTEXT           "%", -1, 149, 106, 28, 8, DT_VCENTER
+        GROUPBOX        "Clock panel arrangement", -1, 4, 3, 176, 95
+        //AUTORADIOBUTTON "Top to bottom", IDD_TOPBOTTOM, 8, 79, 80, 10, WS_TABSTOP
+        //AUTORADIOBUTTON "Bottom to top", IDD_BOTTOMTOP, 8, 69, 80, 10, WS_TABSTOP
+        SPINBUTTON      IDD_PERCOLUMN, 9, 80, 30, 10, SPBS_MASTER | SPBS_NUMERICONLY
+        LTEXT           "per column (0 = single column only)", -1, 41, 80, 128, 8, DT_VCENTER
+        LISTBOX         IDD_CLOCKLIST, 9, 7, 149, 69, LS_NOADJUSTPOS | LS_HORZSCROLL
+        PUSHBUTTON      "#5", IDD_CLOCKUP, 162, 65, 13, 11, BS_MINIICON | WS_DISABLED
+        PUSHBUTTON      "#6", IDD_CLOCKDOWN, 162, 52, 13, 11, BS_MINIICON  | WS_DISABLED
+    END
+END
+
+/*
+DLGTEMPLATE IDD_CFGCLOCKS LOADONCALL MOVEABLE DISCARDABLE
+BEGIN
+    DIALOG  "", IDD_CFGCLOCKS, 1, 1, 305, 153, NOT FS_DLGBORDER
+    BEGIN
+        LTEXT           "Description:", -1, 4, 100, 55, 8, DT_VCENTER
+        ENTRYFIELD      "", IDD_CITYLIST, 63, 101, 158, 8, ES_MARGIN |
+                        WS_GROUP
+                        CTLDATA 8, 128, 0, 0
+        PUSHBUTTON      "...", IDD_CITYMAN, 205, 98, 16, 11, NOT WS_VISIBLE
+        LTEXT           "Timezone:", -1, 4, 84, 55, 8, DT_VCENTER
+        ENTRYFIELD      "", IDD_TZDISPLAY, 63, 85, 158, 8, ES_MARGIN
+                        CTLDATA 8, 64, 0, 0
+        LTEXT           "Locale:", -1, 4, 70, 55, 8, DT_VCENTER
+        CONTROL         "", IDD_LOCALES, 62, 0, 49, 79, WC_COMBOBOX,
+                        CBS_DROPDOWNLIST | WS_GROUP | WS_TABSTOP |
+                        WS_VISIBLE
+        GROUPBOX        "Time format", -1, 4, 35, 219, 26
+        CONTROL         "", IDD_TIMEFMT, 8, 20, 100, 31, WC_COMBOBOX,
+                        CBS_DROPDOWNLIST | WS_GROUP | WS_TABSTOP |
+                        WS_VISIBLE
+        AUTOCHECKBOX    "No seconds display", IDD_TIMESHORT, 120, 42, 96, 8
+        ENTRYFIELD      "", IDD_TIMESTR, 112, 42, 105, 8, ES_MARGIN | NOT
+                        WS_VISIBLE
+        GROUPBOX        "Date format", -1, 4, 3, 219, 26
+        CONTROL         "", IDD_DATEFMT, 8, -12, 100, 31, WC_COMBOBOX,
+                        CBS_DROPDOWNLIST | WS_GROUP | WS_TABSTOP |
+                        WS_VISIBLE
+        ENTRYFIELD      "", IDD_DATESTR, 112, 10, 105, 8, ES_MARGIN | NOT
+                        WS_VISIBLE
+    END
+END
+*/
+
+DLGTEMPLATE IDD_CFGCLOCKS LOADONCALL MOVEABLE DISCARDABLE
+BEGIN
+    DIALOG  "", IDD_CFGCLOCKS, 1, 1, 278, 153, NOT FS_DLGBORDER
+    BEGIN
+        LTEXT           "Description:", -1, 4, 133, 55, 8, DT_VCENTER
+        ENTRYFIELD      "", IDD_CITYLIST, 63, 134, 198, 8, ES_MARGIN |
+                        WS_GROUP
+                        CTLDATA 8, 128, 0, 0
+        PUSHBUTTON      "...", IDD_CITYMAN, 247, 133, 16, 11, NOT WS_VISIBLE
+        LTEXT           "Timezone:", -1, 4, 117, 55, 8, DT_VCENTER
+        ENTRYFIELD      "", IDD_TZDISPLAY, 63, 118, 198, 8, ES_MARGIN
+                        CTLDATA 8, 64, 0, 0
+        LTEXT           "Locale:", -1, 4, 103, 55, 8, DT_VCENTER
+        CONTROL         "", IDD_LOCALES, 62, 3, 49, 109, WC_COMBOBOX,
+                        CBS_DROPDOWNLIST | WS_GROUP | WS_TABSTOP |
+                        WS_VISIBLE
+        GROUPBOX        "Time format", -1, 4, 52, 259, 43
+        LTEXT           "Normal:", -1, 8, 74, 50, 8
+        LTEXT           "Alternate:", -1, 8, 59, 50, 8
+        AUTOCHECKBOX    "No seconds display", IDD_TIMESHORT, 157, 75, 96, 8
+        CONTROL         "", IDD_TIMEFMT, 62, 53, 86, 31, WC_COMBOBOX,
+                        CBS_DROPDOWNLIST | WS_GROUP | WS_TABSTOP |
+                        WS_VISIBLE
+        ENTRYFIELD      "", IDD_TIMESTR, 152, 75, 105, 8, ES_MARGIN | NOT
+                        WS_VISIBLE
+        AUTOCHECKBOX    "No seconds display", IDD_TIMESHORT2, 157, 60, 96, 8
+        CONTROL         "", IDD_TIMEFMT2, 62, 38, 86, 31, WC_COMBOBOX,
+                        CBS_DROPDOWNLIST | WS_GROUP | WS_TABSTOP |
+                        WS_VISIBLE
+        ENTRYFIELD      "", IDD_TIMESTR2, 152, 60, 105, 8, ES_MARGIN | NOT
+                        WS_VISIBLE
+        GROUPBOX        "Date format", -1, 4, 3, 260, 43
+        LTEXT           "Normal:", -1, 8, 26, 50, 8
+        LTEXT           "Alternate:", -1, 8, 10, 50, 8
+        CONTROL         "", IDD_DATEFMT, 62, 4, 86, 31, WC_COMBOBOX,
+                        CBS_DROPDOWNLIST | WS_GROUP | WS_TABSTOP |
+                        WS_VISIBLE
+        ENTRYFIELD      "", IDD_DATESTR, 152, 26, 105, 8, ES_MARGIN | NOT
+                        WS_VISIBLE
+        CONTROL         "", IDD_DATEFMT2, 62, -11, 86, 31, WC_COMBOBOX,
+                        CBS_DROPDOWNLIST | WS_GROUP | WS_TABSTOP |
+                        WS_VISIBLE
+        ENTRYFIELD      "", IDD_DATESTR2, 152, 11, 105, 8, ES_MARGIN | NOT
+                        WS_VISIBLE
+    END
+END
+
+DLGTEMPLATE IDD_CFGPRES LOADONCALL MOVEABLE DISCARDABLE
+BEGIN
+    DIALOG  "Dialog Title", IDD_CFGPRES, 1, 1, 239, 147, NOT FS_DLGBORDER
+    BEGIN
+        CONTROL         "", -1, 4, 112, 219, 18, WC_STATIC, SS_FGNDFRAME |
+                        WS_GROUP | WS_VISIBLE
+        CTEXT           "Display font (drag from palette)", IDD_DISPLAYFONT,
+                        5, 113, 217, 16, DT_VCENTER
+        GROUPBOX        "Colours (drag from palette)", -1, 4, 56, 219, 51
+        CTEXT           "", IDD_BACKGROUND, 9, 82, 28, 14
+        CTEXT           "", IDD_FOREGROUND, 116, 82, 28, 14
+        CTEXT           "", IDD_BORDER, 9, 61, 28, 14
+        CTEXT           "", IDD_SEPARATOR, 116, 61, 28, 14
+        LTEXT           "Background", -1, 42, 85, 68, 8
+        LTEXT           "Foreground", -1, 150, 85, 68, 8
+        LTEXT           "Borders", -1, 42, 64, 68, 8
+        LTEXT           "Internal separator", -1, 150, 64, 68, 8
+        GROUPBOX        "Large time display", -1, 4, 3, 219, 49, NOT WS_VISIBLE
+        LTEXT           "Number style:", -1, 8, 33, 65, 8, NOT WS_VISIBLE
+        CONTROL         "", IDD_TIMESTYLE, 74, 10, 144, 32, WC_COMBOBOX,
+                        CBS_DROPDOWNLIST | WS_GROUP | WS_TABSTOP |
+                        NOT WS_VISIBLE
+        CONTROL         "", -1, 8, 8, 210, 18, WC_STATIC, SS_FGNDFRAME |
+                        WS_GROUP | NOT WS_VISIBLE
+        CTEXT           "Font (drag from palette)", IDD_TIMEFONT, 9, 9, 208,
+                        16, DT_VCENTER | NOT WS_VISIBLE
+    END
+END

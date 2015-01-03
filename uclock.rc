@@ -1,0 +1,89 @@
+#include <os2.h>
+#include "ids.h"
+
+ICON ID_MAINPROGRAM "program.ico"
+ICON ICON_UP        "up.ico"
+ICON ICON_DOWN      "down.ico"
+
+
+STRINGTABLE
+BEGIN
+    IDS_BTN_OK                          "OK"
+    IDS_BTN_CANCEL                      "Cancel"
+    IDS_BTN_HELP                        "Help"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_LOC_UTC                         "(Coordinated Universal Time)"
+    IDS_LOC_DEFAULT                     "(Local Time)"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_CFG_PROGRAM                     "Program Configuration"
+    IDS_CFG_CLOCK                       "Clock %d - Properties"
+    IDS_CFG_COMMONPAGE                  "~Preferences"
+    IDS_CFG_CLOCKPAGE                   "~Clock Setup"
+    IDS_CFG_STYLEPAGE                   "~Appearance"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FORMAT_SYSDEF                   "System default"
+    IDS_FORMAT_LOCDEF                   "Locale default"
+    IDS_FORMAT_CUSTOM                   "Custom string"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_PROMPT_CONFIRM                  "Please Confirm"
+    IDS_PROMPT_DELETE                   "Delete clock %u?"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_ERROR_TITLE                     "Error"
+    IDS_ERROR_CLKDATA                   "Failed to get clock data!"
+    IDS_ERROR_NOTEBOOK                  "Error populating notebook."
+END
+
+MENU IDM_POPUP
+BEGIN
+    MENUITEM "~Program settings...",                ID_CONFIG,          MIS_TEXT //,  MIA_DISABLED
+    MENUITEM SEPARATOR
+    MENUITEM "~Clock properties...",                ID_CLOCKCFG,        MIS_TEXT
+    MENUITEM "~Add clock...",                       ID_CLOCKADD,        MIS_TEXT
+    MENUITEM "~Delete clock",                       ID_CLOCKDEL,        MIS_TEXT
+    MENUITEM SEPARATOR
+    SUBMENU "~Help",                                IDM_HELP
+    BEGIN
+        MENUITEM "~General help",                   ID_HELP,            MIS_HELP | MIS_TEXT
+        MENUITEM SEPARATOR
+        MENUITEM "Product information",             ID_ABOUT,           MIS_TEXT
+    END
+    MENUITEM SEPARATOR
+    MENUITEM "E~xit\tF3",                           ID_QUIT,            MIS_TEXT
+END
+
+STRINGTABLE
+BEGIN
+    IDS_HELP_TITLE          "Universal Clock"
+END
+
+ACCELTABLE ID_MAINPROGRAM
+BEGIN
+    VK_F3,        ID_QUIT,      VIRTUALKEY
+END
+
+HELPTABLE ID_MAINPROGRAM
+BEGIN
+    HELPITEM ID_MAINPROGRAM, HSTB_MAIN, 100
+END
+
+HELPSUBTABLE HSTB_MAIN
+BEGIN
+END
+
+RCINCLUDE "uclock.dlg"
+
