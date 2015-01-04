@@ -12,7 +12,7 @@ BEGIN
         ICON            ID_MAINPROGRAM, IDD_CLOCKLIST, 7, 34, 20, 16
         DEFPUSHBUTTON   "~OK", DID_OK, 38, 2, 40, 12
         LTEXT           "Universal Clock", -1, 38, 51, 150, 8
-        LTEXT           "version 0.2", -1, 38, 42, 150, 8
+        LTEXT           "version 0.3", -1, 38, 42, 150, 8
         GROUPBOX        "", -1, 38, 39, 150, 4
         LTEXT           "(C) 2015 Alex Taylor", -1, 38, 27, 150, 8
         LTEXT           "Licensed under the GNU General Public License.", -1,
@@ -38,19 +38,19 @@ BEGIN
         AUTOCHECKBOX    "Show title bar", IDD_TITLEBAR, 8, 137, 168, 10
         //AUTOCHECKBOX    "Show clock borders", IDD_BORDERS, 8, 126, 168, 10
         LTEXT           "Use compact view below:", -1, 8, 116, 107, 8, DT_VCENTER
-        SPINBUTTON      IDD_VIEWSWITCH, 117, 116, 30, 12, SPBS_MASTER | SPBS_NUMERICONLY
+        SPINBUTTON      IDD_VIEWSWITCH, 117, 116, 30, 12, SPBS_MASTER | SPBS_NUMERICONLY | SPBS_JUSTRIGHT
         LTEXT           "pixels", -1, 149, 116, 28, 8, DT_VCENTER
         LTEXT           "Compact description width:", -1, 8, 106, 107, 8, DT_VCENTER
-        SPINBUTTON      IDD_DESCWIDTH, 117, 106, 30, 12, SPBS_MASTER | SPBS_NUMERICONLY
+        SPINBUTTON      IDD_DESCWIDTH, 117, 106, 30, 12, SPBS_MASTER | SPBS_NUMERICONLY | SPBS_JUSTRIGHT
         LTEXT           "%", -1, 149, 106, 28, 8, DT_VCENTER
         GROUPBOX        "Clock panel arrangement", -1, 4, 3, 176, 95
         //AUTORADIOBUTTON "Top to bottom", IDD_TOPBOTTOM, 8, 79, 80, 10, WS_TABSTOP
         //AUTORADIOBUTTON "Bottom to top", IDD_BOTTOMTOP, 8, 69, 80, 10, WS_TABSTOP
-        SPINBUTTON      IDD_PERCOLUMN, 9, 80, 30, 10, SPBS_MASTER | SPBS_NUMERICONLY
+        SPINBUTTON      IDD_PERCOLUMN, 9, 80, 30, 10, SPBS_MASTER | SPBS_NUMERICONLY | SPBS_JUSTRIGHT
         LTEXT           "per column (0 = single column only)", -1, 41, 80, 128, 8, DT_VCENTER
         LISTBOX         IDD_CLOCKLIST, 9, 7, 149, 69, LS_NOADJUSTPOS | LS_HORZSCROLL
-        PUSHBUTTON      "#5", IDD_CLOCKUP, 162, 65, 13, 11, BS_MINIICON | WS_DISABLED
-        PUSHBUTTON      "#6", IDD_CLOCKDOWN, 162, 52, 13, 11, BS_MINIICON  | WS_DISABLED
+        PUSHBUTTON      "#5", IDD_CLOCKUP, 162, 65, 13, 11, BS_MINIICON | NOT WS_VISIBLE
+        PUSHBUTTON      "#6", IDD_CLOCKDOWN, 162, 52, 13, 11, BS_MINIICON  | NOT WS_VISIBLE
     END
 END
 

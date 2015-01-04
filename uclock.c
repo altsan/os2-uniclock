@@ -8,6 +8,7 @@
 
 #define HELP_FILE               "uclock.hlp"
 #define INI_FILE                "uclock.ini"
+#define ZONE_FILE               "zone_%s.dat"
 
 // min. size of the program window (not used yet)
 #define US_MIN_WIDTH            100
@@ -107,6 +108,7 @@ typedef struct _Global_Data {
     USHORT  fsStyle;                    // global style flags
     USHORT  usCompactThreshold;         // when to auto-switch to compact view
     USHORT  usPerColumn;                // no. of clocks to show per column
+    USHORT  usCols;                     // number of columns required
     BYTE    bDescWidth;                 // % width of descriptions in compact view
 } UCLGLOBAL, *PUCLGLOBAL;
 
@@ -583,6 +585,10 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
         }
     }
 
+    pGlobal->usCols = (pGlobal->usPerColumn && pGlobal->usClocks) ?
+                        (USHORT)ceil((float)pGlobal->usClocks / pGlobal->usPerColumn ) :
+                        1;
+
     // Hide the titlebar if appropriate
     ToggleTitleBar( pGlobal, WinQueryWindow( hwnd, QW_PARENT ), FALSE );
 
@@ -626,9 +632,10 @@ void ResizeClocks( HWND hwnd )
 {
     PUCLGLOBAL pGlobal;
     RECTL      rcl;
-    USHORT     i;
+    USHORT     i, ccount;
     ULONG      flOpts;
-    LONG       x, y, cx, cy, cy2;
+    LONG       x, y, cx, cy;
+    //LONG       cy2;
 
     pGlobal = WinQueryWindowPtr( hwnd, 0 );
     if (pGlobal && pGlobal->usClocks)
@@ -637,11 +644,14 @@ void ResizeClocks( HWND hwnd )
 
         x  = rcl.xLeft;
         y  = rcl.yBottom;
-        cx = rcl.xRight;
-        cy2 = (rcl.yTop - y) / pGlobal->usClocks;
-        cy = cy2 + ((rcl.yTop - y) % pGlobal->usClocks);
+        cx = rcl.xRight / pGlobal->usCols;
+        cy = (rcl.yTop - y) / (pGlobal->usPerColumn? pGlobal->usPerColumn: pGlobal->usClocks);
+        //cy2 = (rcl.yTop - y) / pGlobal->usClocks;
+        //cy = cy2 + ((rcl.yTop - y) % pGlobal->usClocks);
 
+        ccount = 0;
         for ( i = 0; i < pGlobal->usClocks; i++ ) {
+            ccount++;
             if ( ! pGlobal->clocks[i] ) break;
             flOpts = (ULONG) WinSendMsg( pGlobal->clocks[i], WTD_QUERYOPTIONS, MPVOID, MPVOID );
             if ( cy < pGlobal->usCompactThreshold )
@@ -650,8 +660,14 @@ void ResizeClocks( HWND hwnd )
                 flOpts &= ~WTF_MODE_COMPACT;
             WinSendMsg( pGlobal->clocks[i], WTD_SETOPTIONS, MPFROMLONG(flOpts), MPVOID );
             WinSetWindowPos( pGlobal->clocks[i], HWND_TOP, x, y, cx, cy, SWP_SIZE | SWP_MOVE | SWP_SHOW );
-            y += cy;
-            cy = cy2;
+            //cy = cy2;
+            if ( pGlobal->usPerColumn && ( ccount >= pGlobal->usPerColumn )) {
+                ccount = 0;
+                x += cx;
+                y = rcl.yBottom;
+            }
+            else
+                y += cy;
         }
     }
 }
@@ -666,15 +682,26 @@ MRESULT PaintClient( HWND hwnd )
 {
     PUCLGLOBAL pGlobal;
     HPS        hps;
-    RECTL      rcl;
+    RECTL      rcl, rclx;
+    SWP        swp;
+    USHORT     i;
 
     hps = WinBeginPaint( hwnd, NULLHANDLE, NULLHANDLE );
     if (hps)
     {
         pGlobal = WinQueryWindowPtr( hwnd, 0 );
-        if (pGlobal && (pGlobal->usClocks == 0))
+        if (pGlobal /* && (pGlobal->usClocks == 0) */)
         {
             WinQueryWindowRect( hwnd, &rcl );
+            for ( i = 0; i < pGlobal->usClocks; i++ ) {
+                if ( WinQueryWindowPos( pGlobal->clocks[i], &swp )) {
+                    rclx.xLeft = swp.x + 1;
+                    rclx.xRight = swp.x + swp.cx - 1;
+                    rclx.yBottom = swp.y + 1;
+                    rclx.yTop = swp.y + swp.cy - 1;
+                    GpiExcludeClipRectangle( hps, &rclx );
+                }
+            }
             WinFillRect( hps, &rcl, SYSCLR_DIALOGBACKGROUND );
         }
 
@@ -970,6 +997,9 @@ BOOL AddNewClock( HWND hwnd )
     // now show the properties dialog
     if ( ClockNotebook( hwnd, usNew ) ) {
         pGlobal->usClocks++;
+        pGlobal->usCols = pGlobal->usPerColumn ?
+                            (USHORT)ceil((float)pGlobal->usClocks / pGlobal->usPerColumn ) :
+                            1;
     }
     else {
         // delete the new clock if the user cancelled
@@ -1003,6 +1033,9 @@ void DeleteClock( HWND hwnd, PUCLGLOBAL pGlobal, USHORT usDelete )
 
     pGlobal->usClocks--;
     WinDestroyWindow( clocks_tmp[usDelete] );
+    pGlobal->usCols = (pGlobal->usPerColumn && pGlobal->usClocks) ?
+                        (USHORT)ceil((float)pGlobal->usClocks / pGlobal->usPerColumn ) :
+                        1;
 
     // The bottom-most clock (clock 0, and only 0) should have a full border.
     // So if we deleted that clock, we change the border on the new clock 0.
@@ -1150,6 +1183,9 @@ void ConfigNotebook( HWND hwnd )
         pGlobal->fsStyle = config.fsStyle;
         pGlobal->bDescWidth = config.bDescWidth;
         pGlobal->usPerColumn = config.usPerColumn;
+        pGlobal->usCols = (pGlobal->usPerColumn && pGlobal->usClocks) ?
+                            (USHORT)ceil((float)pGlobal->usClocks / pGlobal->usPerColumn ) :
+                            1;
         pGlobal->usCompactThreshold = config.usCompactThreshold;
         for ( i = 0; i < pGlobal->usClocks; i++ ) {
             WinSendMsg( pGlobal->clocks[i], WTD_SETSEPARATOR,
