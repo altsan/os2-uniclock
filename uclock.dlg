@@ -1,7 +1,7 @@
 #ifndef OS2_INCLUDED
    #include <os2.h>
 #endif
-DLGINCLUDE 1 "F:\programming\c\uclock\ids.h"
+DLGINCLUDE 1 "ids.h"
 
 DLGTEMPLATE IDD_ABOUT LOADONCALL MOVEABLE DISCARDABLE
 BEGIN
@@ -139,20 +139,19 @@ DLGTEMPLATE IDD_CFGPRES LOADONCALL MOVEABLE DISCARDABLE
 BEGIN
     DIALOG  "Dialog Title", IDD_CFGPRES, 1, 1, 239, 147, NOT FS_DLGBORDER
     BEGIN
-        CONTROL         "", -1, 4, 112, 219, 18, WC_STATIC, SS_FGNDFRAME |
-                        WS_GROUP | WS_VISIBLE
-        CTEXT           "Display font (drag from palette)", IDD_DISPLAYFONT,
-                        5, 113, 217, 16, DT_VCENTER
-        GROUPBOX        "Colours (drag from palette)", -1, 4, 56, 219, 51
-        CTEXT           "", IDD_BACKGROUND, 9, 82, 28, 14
-        CTEXT           "", IDD_FOREGROUND, 116, 82, 28, 14
-        CTEXT           "", IDD_BORDER, 9, 61, 28, 14
-        CTEXT           "", IDD_SEPARATOR, 116, 61, 28, 14
-        LTEXT           "Background", -1, 42, 85, 68, 8
-        LTEXT           "Foreground", -1, 150, 85, 68, 8
-        LTEXT           "Borders", -1, 42, 64, 68, 8
-        LTEXT           "Internal separator", -1, 150, 64, 68, 8
-        GROUPBOX        "Large time display", -1, 4, 3, 219, 49, NOT WS_VISIBLE
+        CONTROL         "", -1, 4, 112, 219, 18, WC_STATIC, SS_FGNDFRAME | WS_GROUP | WS_VISIBLE
+        CTEXT           "AaBbCc123", IDD_DISPLAYFONT, 5, 113, 172, 16, DT_VCENTER
+        PUSHBUTTON      "Font...", IDD_DISPLAYFONT_BTN, 180, 115, 40, 12
+        GROUPBOX        "Colours", -1, 4, 56, 219, 51
+        CTEXT           "", IDD_BACKGROUND, 8, 82, 28, 14
+        CTEXT           "", IDD_FOREGROUND, 119, 82, 28, 14
+        CTEXT           "", IDD_BORDER, 8, 61, 28, 14
+        CTEXT           "", IDD_SEPARATOR, 119, 61, 28, 14
+        PUSHBUTTON      "Background...", IDD_BACKGROUND_BTN, 38, 83, 70, 12
+        PUSHBUTTON      "Foreground...", IDD_FOREGROUND_BTN, 150, 83, 70, 12
+        PUSHBUTTON      "Borders...", IDD_BORDER_BTN, 38, 62, 70, 12
+        PUSHBUTTON      "Separator line...", IDD_SEPARATOR_BTN, 150, 62, 70, 12
+        GROUPBOX        "Time display (large mode only)", -1, 4, 3, 219, 49, NOT WS_VISIBLE
         LTEXT           "Number style:", -1, 8, 33, 65, 8, NOT WS_VISIBLE
         CONTROL         "", IDD_TIMESTYLE, 74, 10, 144, 32, WC_COMBOBOX,
                         CBS_DROPDOWNLIST | WS_GROUP | WS_TABSTOP |
@@ -163,3 +162,50 @@ BEGIN
                         16, DT_VCENTER | NOT WS_VISIBLE
     END
 END
+
+DLGTEMPLATE ID_CLRDLG LOADONCALL MOVEABLE DISCARDABLE
+BEGIN
+    DIALOG  "", ID_CLRDLG, 40, 26, 210, 178, WS_VISIBLE | NOT
+            WS_SAVEBITS, FCF_SYSMENU | FCF_TITLEBAR | FCF_CLOSEBUTTON |
+            FCF_NOBYTEALIGN
+    BEGIN
+        CONTROL         "", ID_WHEEL, 0, 47, 210, 130, "ColorSelectClass", WS_GROUP | WS_TABSTOP | WS_VISIBLE
+        SPINBUTTON      ID_SPINR, 3,  25, 34, 12, SPBS_NUMERICONLY | SPBS_MASTER | SPBS_JUSTRIGHT | SPBS_FASTSPIN
+        SPINBUTTON      ID_SPING, 45, 25, 34, 12, SPBS_NUMERICONLY | SPBS_MASTER | SPBS_JUSTRIGHT | SPBS_FASTSPIN
+        SPINBUTTON      ID_SPINB, 87, 25, 33, 12, SPBS_NUMERICONLY | SPBS_MASTER | SPBS_JUSTRIGHT | SPBS_FASTSPIN
+        LTEXT           "Red:",   -1, 3,  38, 32, 8, DT_BOTTOM
+        LTEXT           "Green:", -1, 45, 38, 32, 8, DT_BOTTOM | NOT WS_GROUP
+        LTEXT           "Blue:",  -1, 87, 38, 32, 8, DT_BOTTOM | NOT WS_GROUP
+        DEFPUSHBUTTON   "OK", 106, 3, 3, 40, 13
+        PUSHBUTTON      "~Reset", ID_UNDO, 45, 3, 40, 13
+        PUSHBUTTON      "Cancel", DID_CANCEL, 87, 3, 40, 13
+    END
+END
+
+CODEPAGE 850
+DLGTEMPLATE IDD_FONTDLG
+BEGIN
+    DIALOG  "Font", IDD_FONTDLG, 1, 1, 153, 95, FS_NOBYTEALIGN | FS_MOUSEALIGN, FCF_SYSMENU | FCF_TITLEBAR | FCF_CLOSEBUTTON
+    BEGIN
+/* Font dialog controls we actually use */
+        LTEXT           "Name:",                                -1,                 3,   85,  100, 8,   DT_VCENTER
+        COMBOBOX        "",                                     DID_NAME,           3,   2,   147, 82,  NOT CBS_SIMPLE | CBS_DROPDOWNLIST
+        LTEXT           "Style:",                               -1,                 3,   64,  100, 8,   DT_VCENTER
+        COMBOBOX        "",                                     DID_STYLE,          3,   17,  147, 46,  NOT CBS_SIMPLE | CBS_DROPDOWNLIST
+        DEFPUSHBUTTON   "~OK",                                  DID_OK_BUTTON,      3,   2,   40,  12,  WS_GROUP
+        PUSHBUTTON      "Cancel",                               DID_CANCEL_BUTTON,  45,  2,   40,  12,  NOT WS_TABSTOP
+        GROUPBOX        "Sample",                               -1,                 3,   18,  147, 33
+        CTEXT           "abcdABCD",                             DID_SAMPLE,         7,   22,  138, 21,  DT_VCENTER
+                        PRESPARAMS PP_BACKGROUNDCOLOR,          0x00CCCCCCL
+                        PRESPARAMS PP_HILITEBACKGROUNDCOLOR,    0x00CCCCCCL
+                        PRESPARAMS PP_DISABLEDBACKGROUNDCOLOR,  0x00CC00CCL
+/* Standard font dialog controls required by PM but not used by us */
+        COMBOBOX        "",                                     DID_SIZE,           191, 0,   29,  16,  NOT CBS_SIMPLE | CBS_DROPDOWN | NOT WS_VISIBLE
+        AUTOCHECKBOX    "~Display",                             DID_DISPLAY_FILTER, 158, 59,  52,  10,  NOT WS_VISIBLE
+        AUTOCHECKBOX    "~Printer",                             DID_PRINTER_FILTER, 158, 49,  51,  10,  NOT WS_TABSTOP | NOT WS_VISIBLE
+        AUTOCHECKBOX    "Out~line",                             DID_OUTLINE,        158, 39,  42,  10,  NOT WS_VISIBLE
+        AUTOCHECKBOX    "~Underline",                           DID_UNDERSCORE,     158, 29,  46,  10,  NOT WS_TABSTOP | NOT WS_VISIBLE
+        AUTOCHECKBOX    "~Strikeout",                           DID_STRIKEOUT,      158, 19,  47,  10,  NOT WS_TABSTOP | NOT WS_VISIBLE
+    END
+END
+

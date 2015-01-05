@@ -71,6 +71,21 @@
 #define IDD_SEPARATOR               405
 #define IDD_TIMESTYLE               406
 #define IDD_TIMEFONT                407
+#define IDD_DISPLAYFONT_BTN         408
+#define IDD_BACKGROUND_BTN          409
+#define IDD_FOREGROUND_BTN          410
+#define IDD_BORDER_BTN              411
+#define IDD_SEPARATOR_BTN           412
+#define IDD_TIMEFONT_BTN            413
+
+#define ID_CLRDLG                   500
+#define ID_WHEEL                    501
+#define ID_UNDO                     502
+#define ID_SPINR                    503
+#define ID_SPING                    504
+#define ID_SPINB                    505
+
+#define IDD_FONTDLG                 600
 
 #define IDD_ABOUT                   900
 

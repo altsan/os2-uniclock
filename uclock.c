@@ -8,7 +8,7 @@
 
 #define HELP_FILE               "uclock.hlp"
 #define INI_FILE                "uclock.ini"
-#define ZONE_FILE               "zone_%s.dat"
+#define ZONE_FILE               "zoneinfo.dat"
 
 // min. size of the program window (not used yet)
 #define US_MIN_WIDTH            100
@@ -21,6 +21,10 @@
 
 // Maximum string length...
 #define SZRES_MAXZ              256     // ...of a generic string resource
+
+// Used by the colour dialog
+#define CWN_CHANGE              0x601
+#define CWM_SETCOLOUR           0x602
 
 // Maximum number of clock-display windows supported
 #define MAX_CLOCKS              12
@@ -49,8 +53,39 @@
 
 PFNWP pfnRecProc;
 
+
+// ----------------------------------------------------------------------------
+// MACROS
+
+// Get separate RGB values from a long
+#define RGBVAL_RED(l)           ((BYTE)((l >> 16) & 0xFF))
+#define RGBVAL_GREEN(l)         ((BYTE)((l >>  8) & 0xFF))
+#define RGBVAL_BLUE(l)          ((BYTE)(l & 0xFF))
+
+// Combine separate RGB values into a long
+#define RGB2LONG(r,g,b)         ((LONG)((r << 16) | (g << 8) | b ))
+
 // ----------------------------------------------------------------------------
 // TYPEDEFS
+
+// Used by the PM colour-wheel control (on the colour-selection dialog)
+typedef struct CWPARAM {
+    USHORT  cb;
+    RGB     rgb;
+    BOOL    fCancel;
+} CWPARAM;
+
+typedef struct CWDATA {
+    USHORT  updatectl;
+    HWND    hwndCol;
+    HWND    hwndSpinR;
+    HWND    hwndSpinG;
+    HWND    hwndSpinB;
+    RGB     *rgb;
+    RGB     rgbold;
+    BOOL    *pfCancel;
+} CWDATA;
+
 
 // Used to group a single clock's presentation parameters together
 typedef struct _Clock_PresParams {
@@ -144,7 +179,9 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
 MRESULT EXPENTRY ClkStylePageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 BOOL ClkSettingsClock( HWND hwnd, PUCLKPROP pConfig );
 BOOL ClkSettingsStyle( HWND hwnd, PUCLKPROP pConfig );
-
+MRESULT EXPENTRY ClrDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+BOOL SelectFont( HWND hwnd, PSZ pszFace, USHORT cbBuf );
+void SelectColour( HWND hwnd, HWND hwndCtl );
 
 
 /* ------------------------------------------------------------------------- *
@@ -155,6 +192,7 @@ int main( int argc, char *argv[] )
     UCLGLOBAL global;
     HAB       hab;                          // anchor block handle
     HMQ       hmq;                          // message queue handle
+    HLIB      hlib;
     HWND      hwndFrame,                    // window handle
               hwndClient,                   // client area handle
               hwndHelp;                     // help instance
@@ -197,6 +235,7 @@ int main( int argc, char *argv[] )
     }
 
     if ( !fInitFailure ) {
+        hlib = WinLoadLibrary( hab, "WPCONFIG.DLL" );
 
         memset( &global, 0, sizeof(global) );
         global.hab      = hab;
@@ -257,6 +296,7 @@ int main( int argc, char *argv[] )
 
         WinStopTimer( hab, hwndClient, ID_TIMER );
 
+        WinDeleteLibrary( hab, hlib );
     }
 
     // Clean up and exit
@@ -1205,7 +1245,7 @@ void ConfigNotebook( HWND hwnd )
  * ------------------------------------------------------------------------- */
 MRESULT EXPENTRY CfgDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 {
-    static PUCFGDATA pConfig;
+    PUCFGDATA pConfig;
     HPOINTER  hicon;
     HWND      hwndPage;
 
@@ -1216,6 +1256,7 @@ MRESULT EXPENTRY CfgDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             WinSendMsg( hwnd, WM_SETICON, (MPARAM) hicon, MPVOID );
 
             pConfig = (PUCFGDATA) mp2;
+            WinSetWindowPtr( hwnd, 0, pConfig );
 
             if ( ! CfgPopulateNotebook( hwnd, pConfig ) ) {
                 ErrorPopup("Error populating notebook.");   // TODO NLS
@@ -1226,6 +1267,7 @@ MRESULT EXPENTRY CfgDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
 
         case WM_COMMAND:
+            pConfig = WinQueryWindowPtr( hwnd, 0 );
             switch( SHORT1FROMMP( mp1 )) {
 
                 case DID_OK:
@@ -1241,6 +1283,7 @@ MRESULT EXPENTRY CfgDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
 
         case WM_CONTROL:
+            pConfig = WinQueryWindowPtr( hwnd, 0 );
             switch( SHORT1FROMMP( mp1 )) {
             } // end WM_CONTROL messages
             break;
@@ -1569,7 +1612,7 @@ BOOL ClockNotebook( HWND hwnd, USHORT usNumber )
  * ------------------------------------------------------------------------- */
 MRESULT EXPENTRY ClkDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 {
-    static PUCLKPROP pConfig;
+    PUCLKPROP pConfig;
     HPOINTER  hicon;
     HWND      hwndPage;
     UCHAR     szTitle[ SZRES_MAXZ ];
@@ -1581,6 +1624,7 @@ MRESULT EXPENTRY ClkDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             WinSendMsg( hwnd, WM_SETICON, (MPARAM) hicon, MPVOID );
 
             pConfig = (PUCLKPROP) mp2;
+            WinSetWindowPtr( hwnd, 0, pConfig );
 
             sprintf( szTitle, "Clock %d - Properties", pConfig->usClock+1 );     // TODO NLS
             WinSetWindowText( hwnd, szTitle );
@@ -1594,6 +1638,7 @@ MRESULT EXPENTRY ClkDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
 
         case WM_COMMAND:
+            pConfig = WinQueryWindowPtr( hwnd, 0 );
             switch( SHORT1FROMMP( mp1 )) {
 
                 case DID_OK:
@@ -1612,6 +1657,7 @@ MRESULT EXPENTRY ClkDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
 
         case WM_CONTROL:
+            pConfig = WinQueryWindowPtr( hwnd, 0 );
             switch( SHORT1FROMMP( mp1 )) {
             } // end WM_CONTROL messages
             break;
@@ -1907,8 +1953,8 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
 MRESULT EXPENTRY ClkStylePageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 {
     static PUCLKPROP pConfig;
-    UCHAR szFontPP[ FACESIZE+4 ];
-    ULONG clr;
+    UCHAR  szFontPP[ FACESIZE+4 ];
+    ULONG  clr;
 
     switch ( msg ) {
 
@@ -1962,6 +2008,37 @@ MRESULT EXPENTRY ClkStylePageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
 
         case WM_COMMAND:
             switch( SHORT1FROMMP( mp1 )) {
+
+                case IDD_DISPLAYFONT_BTN:
+                    if ( WinQueryPresParam( WinWindowFromID(hwnd, IDD_DISPLAYFONT),
+                                            PP_FONTNAMESIZE, 0, NULL,
+                                            sizeof(szFontPP), szFontPP, QPF_NOINHERIT ))
+                    {
+                        PSZ psz = strchr( szFontPP, '.') + 1;
+                        if ( SelectFont( hwnd, psz,
+                                         sizeof(szFontPP) - ( strlen(szFontPP) - strlen(psz) )))
+                        {
+                            WinSetPresParam( WinWindowFromID( hwnd, IDD_DISPLAYFONT ),
+                                             PP_FONTNAMESIZE, strlen(szFontPP)+1, szFontPP );
+                        }
+                    }
+                    break;
+
+                case IDD_BACKGROUND_BTN:
+                    SelectColour( hwnd, WinWindowFromID( hwnd, IDD_BACKGROUND ));
+                    break;
+
+                case IDD_FOREGROUND_BTN:
+                    SelectColour( hwnd, WinWindowFromID( hwnd, IDD_FOREGROUND ));
+                    break;
+
+                case IDD_BORDER_BTN:
+                    SelectColour( hwnd, WinWindowFromID( hwnd, IDD_BORDER ));
+                    break;
+
+                case IDD_SEPARATOR_BTN:
+                    SelectColour( hwnd, WinWindowFromID( hwnd, IDD_SEPARATOR ));
+                    break;
 
                 // common buttons
                 case DID_OK:
@@ -2107,6 +2184,7 @@ BOOL ClkSettingsStyle( HWND hwnd, PUCLKPROP pConfig )
     else
         styles.clrSep = NO_COLOUR_PP;
 
+    // font presentation parameter
     if ( WinQueryPresParam( WinWindowFromID(hwnd, IDD_DISPLAYFONT),
                             PP_FONTNAMESIZE, 0, NULL,
                             sizeof(szFont), szFont, QPF_NOINHERIT ))
@@ -2120,4 +2198,224 @@ BOOL ClkSettingsStyle( HWND hwnd, PUCLKPROP pConfig )
 }
 
 
+/* ------------------------------------------------------------------------- *
+ * ClrDlgProc                                                                *
+ *                                                                           *
+ * Dialog procedure for the colour-selection dialog.  Adapted from the       *
+ * following (public domain) sample code by Paul Ratcliffe:                  *
+ * http://home.clara.net/orac/files/os2/pmcolour.zip                         *
+ * ------------------------------------------------------------------------- */
+MRESULT EXPENTRY ClrDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
+{
+    CWDATA  *cwdata;
+    HWND    hwndSpin;
+    ULONG   newval;
 
+    cwdata = (CWDATA *) WinQueryWindowULong( hwnd, QWL_USER );
+
+    switch( msg )
+    {
+        case WM_INITDLG:
+            if (!(cwdata = malloc(sizeof(CWDATA))) ||
+                !mp2 || !(cwdata->rgb = &(((CWPARAM *) mp2)->rgb)))
+            {
+                WinPostMsg( hwnd, WM_CLOSE, MPVOID, MPVOID );
+                break;
+            }
+
+            WinSetWindowULong( hwnd, QWL_USER, (ULONG) cwdata );
+            cwdata->rgbold = *cwdata->rgb;
+            cwdata->hwndCol = WinWindowFromID( hwnd, ID_WHEEL );
+            cwdata->hwndSpinR = WinWindowFromID( hwnd, ID_SPINR );
+            cwdata->hwndSpinG = WinWindowFromID( hwnd, ID_SPING );
+            cwdata->hwndSpinB = WinWindowFromID( hwnd, ID_SPINB );
+            cwdata->updatectl = FALSE;
+            cwdata->pfCancel = &(((CWPARAM *) mp2)->fCancel);
+            WinSendMsg( cwdata->hwndSpinR, SPBM_SETLIMITS,
+                        MPFROMSHORT(255), MPFROMSHORT(0) );
+            WinSendMsg( cwdata->hwndSpinG, SPBM_SETLIMITS,
+                        MPFROMSHORT(255), MPFROMSHORT(0) );
+            WinSendMsg( cwdata->hwndSpinB, SPBM_SETLIMITS,
+                        MPFROMSHORT(255), MPFROMSHORT(0) );
+            WinSendMsg( hwnd, CWN_CHANGE,
+                        MPFROMLONG(*((ULONG *) cwdata->rgb) & 0xFFFFFF), MPVOID );
+            WinSendMsg( cwdata->hwndCol, CWM_SETCOLOUR,
+                        MPFROMLONG(*((ULONG *) cwdata->rgb) & 0xFFFFFF), MPVOID) ;
+            break;
+
+        case WM_COMMAND:
+            switch(SHORT1FROMMP(mp1))
+            {
+                case ID_UNDO:
+                    WinSendMsg( hwnd, CWN_CHANGE,
+                                MPFROMLONG(*((ULONG *) &cwdata->rgbold) & 0xFFFFFF),
+                                MPVOID );
+                    WinSendMsg( cwdata->hwndCol, CWM_SETCOLOUR,
+                                MPFROMLONG(*((ULONG *) &cwdata->rgbold) & 0xFFFFFF),
+                                MPVOID );
+                    return ((MPARAM) 0);
+
+                case DID_CANCEL:
+                    WinSendMsg( hwnd, CWN_CHANGE,
+                                MPFROMLONG(*((ULONG *) &cwdata->rgbold) & 0xFFFFFF),
+                                MPVOID );
+                    WinSendMsg( cwdata->hwndCol, CWM_SETCOLOUR,
+                                MPFROMLONG(*((ULONG *) &cwdata->rgbold) & 0xFFFFFF),
+                                MPVOID );
+                    *(cwdata->pfCancel) = TRUE;
+                    break;
+            }
+            break;
+
+        case CWN_CHANGE:
+            *cwdata->rgb = *((RGB *) &mp1);
+            cwdata->updatectl = FALSE;
+            WinSendMsg( cwdata->hwndSpinR, SPBM_SETCURRENTVALUE,
+                        MPFROMSHORT(cwdata->rgb->bRed), MPVOID );
+            WinSendMsg( cwdata->hwndSpinG, SPBM_SETCURRENTVALUE,
+                        MPFROMSHORT(cwdata->rgb->bGreen), MPVOID );
+            WinSendMsg( cwdata->hwndSpinB, SPBM_SETCURRENTVALUE,
+                        MPFROMSHORT(cwdata->rgb->bBlue), MPVOID );
+            cwdata->updatectl = TRUE;
+            break;
+
+        case WM_CONTROL:
+            switch(SHORT1FROMMP(mp1))
+            {
+                case ID_SPINR:
+                case ID_SPING:
+                case ID_SPINB:
+                    hwndSpin = WinWindowFromID( hwnd, SHORT1FROMMP(mp1) );
+                    switch(SHORT2FROMMP(mp1))
+                    {
+                        case SPBN_CHANGE:
+                        case SPBN_KILLFOCUS:
+                            if (cwdata->updatectl)
+                            {
+                                WinSendMsg( hwndSpin, SPBM_QUERYVALUE,
+                                            (MPARAM) &newval,
+                                            MPFROM2SHORT(0, SPBQ_ALWAYSUPDATE) );
+                                switch(SHORT1FROMMP(mp1))
+                                {
+                                    case ID_SPINR:
+                                    cwdata->rgb->bRed = (BYTE) newval;
+                                    break;
+
+                                    case ID_SPING:
+                                    cwdata->rgb->bGreen = (BYTE) newval;
+                                    break;
+
+                                    case ID_SPINB:
+                                    cwdata->rgb->bBlue = (BYTE) newval;
+                                }
+
+                                WinSendMsg( cwdata->hwndCol, CWM_SETCOLOUR,
+                                            MPFROMLONG(*((ULONG *) cwdata->rgb) &
+                                            0xFFFFFF), MPVOID );
+                            }
+                        default: break;
+                    }
+                default: break;
+            }
+            break;
+
+        case WM_DESTROY:
+            free( cwdata );
+    }
+
+    return WinDefDlgProc( hwnd, msg, mp1, mp2 );
+}
+
+
+/* ------------------------------------------------------------------------- *
+ * SelectFont                                                                *
+ *                                                                           *
+ * Pop up a font selection dialog.                                           *
+ *                                                                           *
+ * Parameters:                                                               *
+ *   HWND   hwnd   : handle of the current window.                           *
+ *   PSZ    pszFace: pointer to buffer containing current font name.         *
+ *   USHORT cbBuf  : size of the buffer pointed to by 'pszFace'.             *
+ *                                                                           *
+ * RETURNS: BOOL                                                             *
+ * ------------------------------------------------------------------------- */
+BOOL SelectFont( HWND hwnd, PSZ pszFace, USHORT cbBuf )
+{
+    FONTDLG     fontdlg = {0};
+    FONTMETRICS fm      = {0};
+    LONG        lQuery  = 0;
+    CHAR        szName[ FACESIZE ];
+    HWND        hwndFD;
+    HPS         hps;
+
+    hps = WinGetPS( hwnd );
+    strncpy( szName, pszFace, FACESIZE-1 );
+
+    // Get the metrics of the current font (we'll want to know the weight class)
+    lQuery = 1;
+    GpiQueryFonts( hps, QF_PUBLIC, pszFace, &lQuery, sizeof(fm), &fm );
+
+    fontdlg.cbSize         = sizeof( FONTDLG );
+    fontdlg.hpsScreen      = hps;
+    fontdlg.pszTitle       = NULL;
+    fontdlg.pszPreview     = NULL;
+    fontdlg.pfnDlgProc     = NULL;
+    fontdlg.pszFamilyname  = szName;
+    fontdlg.usFamilyBufLen = sizeof( szName );
+    fontdlg.fxPointSize    = ( fm.fsDefn & FM_DEFN_OUTLINE ) ?
+                                MAKEFIXED( 10, 0 ) :
+                                ( fm.sNominalPointSize / 10 );
+    fontdlg.usWeight       = (USHORT) fm.usWeightClass;
+    fontdlg.clrFore        = SYSCLR_WINDOWTEXT;
+    fontdlg.clrBack        = SYSCLR_WINDOW;
+    fontdlg.fl             = FNTS_CENTER | FNTS_CUSTOM;
+    fontdlg.flStyle        = 0;
+    fontdlg.flType         = ( fm.fsSelection & FM_SEL_ITALIC ) ? FTYPE_ITALIC : 0;
+    fontdlg.usDlgId        = IDD_FONTDLG;
+    fontdlg.hMod           = NULLHANDLE;
+
+    hwndFD = WinFontDlg( HWND_DESKTOP, hwnd, &fontdlg );
+    WinReleasePS( hps );
+    if (( hwndFD ) && ( fontdlg.lReturn == DID_OK )) {
+        strncpy( pszFace, fontdlg.fAttrs.szFacename, cbBuf-1 );
+        return TRUE;
+    }
+    return FALSE;
+}
+
+
+/* ------------------------------------------------------------------------- *
+ * SelectColour                                                              *
+ *                                                                           *
+ * Pop up a colour selection dialog.                                         *
+ *                                                                           *
+ * Parameters:                                                               *
+ *   HWND hwnd   : handle of the current window.                             *
+ *   HWND hwndCtl: handle of the window whose colour is being updated.       *
+ *                                                                           *
+ * RETURNS: BOOL                                                             *
+ * ------------------------------------------------------------------------- */
+void SelectColour( HWND hwnd, HWND hwndCtl )
+{
+    CWPARAM cwp;
+    ULONG   clr;
+
+    cwp.cb = sizeof(CWPARAM);
+    cwp.fCancel = FALSE;
+    if ( WinQueryPresParam( hwndCtl, PP_BACKGROUNDCOLOR,
+                            PP_BACKGROUNDCOLORINDEX, NULL,
+                            sizeof(clr), &clr, QPF_ID2COLORINDEX ))
+    {
+        cwp.rgb.bRed   = RGBVAL_RED( clr );
+        cwp.rgb.bGreen = RGBVAL_GREEN( clr );
+        cwp.rgb.bBlue  = RGBVAL_BLUE( clr );
+        WinDlgBox( HWND_DESKTOP, hwnd, ClrDlgProc,
+                   NULLHANDLE, ID_CLRDLG, &cwp );
+
+        if ( !cwp.fCancel ) {
+            clr = RGB2LONG( cwp.rgb.bRed, cwp.rgb.bGreen, cwp.rgb.bBlue );
+            WinSetPresParam( hwndCtl, PP_BACKGROUNDCOLOR, sizeof(clr), &clr );
+        }
+    }
+
+}
