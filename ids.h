@@ -49,7 +49,7 @@
 #define IDD_CLOCKADD                302
 #define IDD_CLOCKDEL                303
 #define IDD_CITYLIST                306
-#define IDD_CITYMAN                 307
+#define IDD_TZSELECT                307
 #define IDD_TZDISPLAY               308
 #define IDD_LOCALES                 309
 #define IDD_DATESTR                 310
@@ -86,6 +86,13 @@
 #define ID_SPINB                    505
 
 #define IDD_FONTDLG                 600
+
+#define IDD_TIMEZONE                700
+#define IDD_TZCOUNTRY               701
+#define IDD_TZNAME                  702
+#define IDD_TZLATITUDE              703
+#define IDD_TZLONGITUDE             704
+#define IDD_TZVALUE                 705
 
 #define IDD_ABOUT                   900
 

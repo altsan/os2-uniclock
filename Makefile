@@ -1,7 +1,5 @@
-# IBM C/C++ (VisualAge) Makefile for DBCSMAP, English version.
+# IBM C/C++ (VisualAge) Makefile for UNICLOCK, English version.
 #
-# To compile other languages, change 'NLV' (below) to the appropriate country
-# code.  That NLV directory must exist and must have the correct language files.
 #
 
 CC     = icc.exe
@@ -30,5 +28,5 @@ $(NAME).res : $(NAME).rc $(NAME).dlg ids.h program.ico
                 $(RC) -r -n $(NAME).rc $@
 
 clean       :
-                del $(OBJS) $(NAME).res $(NAME).exe >NUL
+                -del $(OBJS) $(NAME).res $(NAME).exe 2>NUL
 

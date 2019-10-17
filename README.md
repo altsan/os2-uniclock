@@ -1,4 +1,5 @@
 Universal Clock & WTDPanel
+==========================
 
 This is a multi-timezone 'world clock' control and application for OS/2.  
 
@@ -13,8 +14,9 @@ and possibly local weather reports.
 
 
 License
+-------
 
-  Copyright (C) 2015 Alexander Taylor
+  Copyright (C) 2015-2019 Alexander Taylor
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
