@@ -44,8 +44,9 @@ END
 STRINGTABLE
 BEGIN
     IDS_ERROR_TITLE                     "Error"
-    IDS_ERROR_CLKDATA                   "Failed to get clock data!"
+    IDS_ERROR_CLKDATA                   "Failed to get clock data."
     IDS_ERROR_NOTEBOOK                  "Error populating notebook."
+    IDS_ERROR_ZONEINFO                  "Unable to read timezone database (%s)."
 END
 
 MENU IDM_POPUP

@@ -8,7 +8,7 @@
 
 #define HELP_FILE               "uclock.hlp"
 #define INI_FILE                "uclock.ini"
-#define ZONE_FILE               "zoneinfo.en"
+#define ZONE_FILE               "ZONEINFO.EN"
 
 // min. size of the program window (not used yet)
 //#define US_MIN_WIDTH            100
@@ -73,6 +73,7 @@ PFNWP pfnRecProc;
 
 // Combine separate RGB values into a long
 #define RGB2LONG(r,g,b)         ((LONG)((r << 16) | (g << 8) | b ))
+
 
 // ----------------------------------------------------------------------------
 // TYPEDEFS
@@ -140,11 +141,13 @@ typedef struct _Clock_Properties {
 
 // Used to pass data in the timezone selection dialog
 typedef struct _TZ_Properties {
-    HAB     hab;                        // anchor-block handle
-    HMQ     hmq;                        // main message queue
-    CHAR    achDesc[ LOCDESC_MAXZ ];    // current description
-    CHAR    achTZ[ TZSTR_MAXZ ];        // TZ variable string
-    LONG    lLatitude, lLongitude;      // geographic coordinates
+    HAB         hab;                        // anchor-block handle
+    HMQ         hmq;                        // main message queue
+    CHAR        achDesc[ LOCDESC_MAXZ ];    // current description
+    CHAR        achTZ[ TZSTR_MAXZ ];        // TZ variable string
+    GEOCOORD    coordinates;                // geographic coordinates
+    UconvObject uconv;                      // Unicode (UCS-2) conversion object
+    UconvObject uconv1208;                  // UTF-8 conversion object
 } TZPROP, *PTZPROP;
 
 
@@ -178,6 +181,7 @@ MRESULT PaintClient( HWND hwnd );
 MRESULT EXPENTRY AboutDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 BOOL WindowSetup( HWND hwnd, HWND hwndClient );
 void CentreWindow( HWND hwnd );
+void ErrorMessage( HWND hwnd, USHORT usID );
 void ToggleTitleBar( PUCLGLOBAL pGlobal, HWND hwndFrame, BOOL fOn );
 void OpenProfile( PUCLGLOBAL pGlobal );
 BOOL LoadIniData( PVOID pData, USHORT cb, HINI hIni, PSZ pszApp, PSZ pszKey );
@@ -192,7 +196,7 @@ MRESULT EXPENTRY CfgCommonPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2
 MRESULT EXPENTRY CfgClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 MRESULT EXPENTRY CfgPresPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
-void TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszApp );
+void TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry, PTZPROP pProps );
 void CfgPopulateClockList( HWND hwnd, PUCFGDATA pConfig );
 void CfgSettingsCommon( HWND hwnd, PUCFGDATA pConfig );
 BOOL ClockNotebook( HWND hwnd, USHORT usNumber );
@@ -805,6 +809,33 @@ void CentreWindow( HWND hwnd )
 
 
 /* ------------------------------------------------------------------------- *
+ * ErrorMessage                                                              *
+ *                                                                           *
+ * ARGUMENTS:                                                                *
+ *   HWND   hwnd: Handle of the message-box owner.                           *
+ *   USHORT usID: Resource ID of the error string to display.                *
+ *                                                                           *
+ * RETURNS: N/A                                                              *
+ * ------------------------------------------------------------------------- */
+void ErrorMessage( HWND hwnd, USHORT usID )
+{
+    HAB  hab;
+    CHAR szRes1[ SZRES_MAXZ ],
+         szRes2[ 20 ];  // just need enough for the "Error" string in any language
+
+    if ( hwnd == NULLHANDLE )
+        hwnd = HWND_DESKTOP;
+
+    hab = WinQueryAnchorBlock( hwnd );
+    if ( !WinLoadString( hab, NULLHANDLE, usID, sizeof( szRes1 ) - 1, szRes1 ))
+        sprintf( szRes1, "Error %d\n(Failed to load string resource)", usID );
+    if ( !WinLoadString( hab, NULLHANDLE, IDS_ERROR_TITLE, sizeof( szRes2 ) - 1, szRes2 ))
+        strcpy( szRes2, "Error");
+    WinMessageBox( HWND_DESKTOP, hwnd, szRes1, szRes2, 0, MB_OK | MB_ERROR );
+}
+
+
+/* ------------------------------------------------------------------------- *
  * ToggleTitleBar                                                            *
  *                                                                           *
  * Turns the frame window titlebar on or off.                                *
@@ -991,7 +1022,7 @@ void SaveSettings( HWND hwnd )
             sprintf( szPrfKey, "%s%02d", PRF_KEY_PANEL, i );
             PrfWriteProfileData( pGlobal->hIni, PRF_APP_CLOCKDATA, szPrfKey, &(wtdconfig), sizeof(wtdconfig) );
         } else {
-            ErrorPopup("Failed to get clock data.");    //TODO NLS
+            ErrorMessage( hwnd, IDS_ERROR_CLKDATA );
         }
 
     }
@@ -1298,7 +1329,7 @@ MRESULT EXPENTRY CfgDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             WinSetWindowPtr( hwnd, 0, pConfig );
 
             if ( ! CfgPopulateNotebook( hwnd, pConfig ) ) {
-                ErrorPopup("Error populating notebook.");   // TODO NLS
+                ErrorMessage( hwnd, IDS_ERROR_NOTEBOOK );
                 return (MRESULT) TRUE;
             }
             CentreWindow( hwnd );
@@ -1687,7 +1718,7 @@ MRESULT EXPENTRY ClkDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             WinSetWindowText( hwnd, szTitle );
 
             if ( ! ClkPopulateNotebook( hwnd, pConfig ) ) {
-                ErrorPopup("Error populating notebook.");   // TODO NLS
+                ErrorMessage( hwnd, IDS_ERROR_NOTEBOOK );
                 return (MRESULT) TRUE;
             }
             CentreWindow( hwnd );
@@ -2272,14 +2303,14 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
     ULONG  cb,
            len;
-    CHAR   achCountry[ COUNTRYNAME_MAXZ ] = {0};
-    PUCHAR pbuf,
-           pkeys;
+    CHAR   achCountry[ COUNTRYNAME_MAXZ ] = {0},
+           achRes[ SZRES_MAXZ ];
+    PUCHAR pbuf;
     SHORT  sIdx,
            sCount;
     PSZ    pszData,
            pszTZ,
-           pszCoord, pszLat, pszLong;
+           pszCoord;
 
 
     switch ( msg ) {
@@ -2287,10 +2318,8 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
         case WM_INITDLG:
             pProps = (PTZPROP) mp2;
 
-            WinSetDlgItemText( hwnd, IDD_TZVALUE, pProps->achTZ );
-
             // Open the TZ profile and get all application names
-            hTZDB = PrfOpenProfile( pProps->hab, "ZONEINFO.EN" );
+            hTZDB = PrfOpenProfile( pProps->hab, ZONE_FILE );
             if ( hTZDB &&
                  PrfQueryProfileSize( hTZDB, NULL, NULL, &cb ) && cb )
             {
@@ -2329,11 +2358,9 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                 }
             }
             else {
-                CHAR szError[256];
-                sprintf( szError, "Unable to load timezone data %s:\nWinGetLastError() = 0x%X\n",
-                         ZONE_FILE, ERRORIDERROR( WinGetLastError(pProps->hab) ));
-                ErrorPopup( szError );
+                ErrorMessage( hwnd, IDS_ERROR_ZONEINFO );
             }
+            WinSetDlgItemText( hwnd, IDD_TZVALUE, pProps->achTZ );
             CentreWindow( hwnd );
             break;
 
@@ -2370,7 +2397,7 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                                                            0L );
                         if ( pszData ) {
                             // Repopulate the timezone list for the new country
-                            TZPopulateCountryZones( hwnd, hTZDB, pszData );
+                            TZPopulateCountryZones( hwnd, hTZDB, pszData, pProps );
                         }
                     }
                     break;
@@ -2390,10 +2417,9 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                             pszTZ = strtok( pszData, "\t");
                             pszCoord = strtok( NULL, "\t");
                             if ( pszCoord ) {
-                                pszLat = strtok( pszCoord, "+-");
-                                pszLong = strtok( NULL, "+-");
-                                // IDD_TZLATITUDE
-                                // IDD_TZLONGITUDE
+                                // format is [+-]DDMM[+-]DDDMM or [+-]DDMMSS[+-]DDDMMSS
+                                //pszLat = strtok( pszCoord, "+-");
+                                //pszLong = strtok( NULL, "+-");
                             }
                             WinSetDlgItemText( hwnd, IDD_TZVALUE, pszTZ );
 //                            WinSetDlgItemText( hwnd, IDD_TZVALUE, pszData );
@@ -2686,6 +2712,12 @@ void SelectTimeZone( HWND hwnd, PUCLKPROP pConfig )
 
     tzp.hab = pConfig->hab;
     tzp.hmq = pConfig->hmq;
+    tzp.uconv = pConfig->uconv;
+
+    if ( UniCreateUconvObject( (UniChar *) L"IBM-1208@map=display,path=no",
+                               &(tzp.uconv1208) ) != 0 )
+        tzp.uconv1208 = NULL;
+
     WinQueryDlgItemText( hwnd, IDD_CITYLIST, LOCDESC_MAXZ, tzp.achDesc );
     WinQueryDlgItemText( hwnd, IDD_TZDISPLAY, LOCDESC_MAXZ, tzp.achTZ );
 
@@ -2693,6 +2725,7 @@ void SelectTimeZone( HWND hwnd, PUCLKPROP pConfig )
 
     WinSetDlgItemText( hwnd, IDD_TZDISPLAY, tzp.achTZ );
 
+    if ( tzp.uconv1208 ) UniFreeUconvObject( tzp.uconv1208 );
 }
 
 
@@ -2701,22 +2734,25 @@ void SelectTimeZone( HWND hwnd, PUCLKPROP pConfig )
  *                                                                           *
  *                                                                           *
  * Parameters:                                                               *
- *   HWND hwnd  : handle of the current window.                              *
- *   HINI hTZDB : handle to already-open TZ data INI file.                   *
- *   PSZ pszCtry: country code.                                              *
+ *   HWND     hwnd   : handle of the current window.                         *
+ *   HINI     hTZDB  : handle to already-open TZ data INI file.              *
+ *   PSZ      pszCtry: country code.                                         *
+ *   PTZPROPS pProps : pointer to custom window data                         *
  *                                                                           *
  * RETURNS: N/A                                                              *
  * ------------------------------------------------------------------------- */
-void TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry )
+void TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry, PTZPROP pProps )
 {
-    PUCHAR pkeys;
-    CHAR   achZone[ TZDATA_MAXZ ];
-    PSZ    pszName,
-           pszValue;
-    ULONG  cb,
-           len;
-    BOOL   fMustKeep;
-    SHORT  sIdx;
+    PUCHAR  pkeys;
+    CHAR    achZone[ TZDATA_MAXZ ],
+            achTZ[ TZSTR_MAXZ ];
+    UniChar aucZone[ TZDATA_MAXZ ];
+    PSZ     pszName,
+            pszValue;
+    ULONG   cb,
+            len;
+    BOOL    fMustKeep;
+    SHORT   sIdx;
 
     if ( hTZDB == NULLHANDLE ) return;
 
@@ -2732,6 +2768,7 @@ void TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry )
                     // Query the value of each key that doesn't start with '.'
                     if ( len && ( *pszKey != '.')) {
                         pszName = pszKey;
+                        // Get the translated & localized region name
                         PrfQueryProfileString( hTZDB, pszCtry, pszName, "Unknown",
                                                (PVOID) achZone, TZDATA_MAXZ );
 
@@ -2749,44 +2786,55 @@ void TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry )
                             fMustKeep = TRUE;
                             pszName++;
                         }
+#if 1
+                        // For now, just use the original tzdata zone names
+                        strncpy( achZone, pszName, TZDATA_MAXZ-1 );
+#endif
 
+                        // Get the TZ variable associated with this zone
                         PrfQueryProfileString( hTZDB, pszName, "TZ", "",
-                                               (PVOID) achZone, TZDATA_MAXZ );
+                                               (PVOID) achTZ, TZSTR_MAXZ );
 
                         // Filter out zones with no TZ variable (TODO and duplicate names)
-                        if ( !fMustKeep ) {
+//                        if ( !fMustKeep ) {
                             if ( strlen( achZone ) == 0 ) continue;
+//                        }
+
+                        // Zone name is UTF-8, so convert it to the current codepage
+                        if ( pProps->uconv && pProps->uconv1208 &&
+                             !UniStrToUcs( pProps->uconv1208, aucZone, achZone, TZDATA_MAXZ ))
+                        {
+                            UniStrFromUcs( pProps->uconv, achZone, aucZone, TZDATA_MAXZ );
                         }
 
+                        // Add zone name to listbox
+                        /* TODO: If we switch to using the localized region names,
+                         * what we should do here is construct a list of (unique)
+                         * names to keep. Then (after the loop), if the list is
+                         * non-empty we populate the name dropdown; otherwise
+                         * disable it.
+                         */
+                        sIdx = (SHORT) \
+                                WinSendDlgItemMsg( hwnd, IDD_TZNAME, LM_INSERTITEM,
+                                                   MPFROMSHORT( LIT_SORTASCENDING ),
+                                                   MPFROMP( achZone ));
+
+                        // Allocate a string for the item data. This will be
+                        // freed when the list is cleared (in TZDlgProc).
                         pszValue = malloc( TZDATA_MAXZ );
-                        strncpy( pszValue, achZone, TZDATA_MAXZ-1 );
+
+                        // We save the TZ variable string and the coordinates
+                        strncpy( pszValue, achTZ, TZSTR_MAXZ );
                         PrfQueryProfileString( hTZDB, pszKey, "Coordinates", "0,0",
                                                (PVOID) achZone, TZDATA_MAXZ );
 
                         // Concatenate the two together separated by tab
                         if (( strlen( pszValue ) + strlen( achZone ) + 1 ) < TZDATA_MAXZ ) {
-                            strncat( pszValue, "\t", TZDATA_MAXZ-1 );
+                            strcat( pszValue, "\t");
                             strncat( pszValue, achZone, TZDATA_MAXZ-1 );
                         }
 
-#if 0
-                        // TODO: No, what we should do here is construct a list
-                        // of (unique) names to keep. Only if the list is non-empty
-                        // do we populate the name dropdown; otherwise we disable it.
-                        sIdx = (SHORT) \
-                                WinSendDlgItemMsg( hwnd, IDD_TZNAME, LM_INSERTITEM,
-                                                   MPFROMSHORT( LIT_SORTASCENDING ),
-                                                   MPFROMP( achZone ));
-#else
-                        // For now, just use the original tzdata zone names
-                        // Add zone name to listbox
-                        sIdx = (SHORT) \
-                                WinSendDlgItemMsg( hwnd, IDD_TZNAME, LM_INSERTITEM,
-                                                   MPFROMSHORT( LIT_SORTASCENDING ),
-                                                   MPFROMP( pszName ));
-#endif
-
-                        // Save in the list item data handle
+                        // Save the TZ var and coordinates in the item data handle
                         WinSendDlgItemMsg( hwnd, IDD_TZNAME, LM_SETITEMHANDLE,
                                            MPFROMSHORT( sIdx ),
                                            MPFROMP( pszValue ));

@@ -90,9 +90,13 @@
 #define IDD_TIMEZONE                700
 #define IDD_TZCOUNTRY               701
 #define IDD_TZNAME                  702
-#define IDD_TZLATITUDE              703
-#define IDD_TZLONGITUDE             704
-#define IDD_TZVALUE                 705
+#define IDD_TZLAT_DEGS              703
+#define IDD_TZLAT_MINS              704
+#define IDD_TZLAT_SECS              705
+#define IDD_TZLONG_DEGS             706
+#define IDD_TZLONG_MINS             707
+#define IDD_TZLONG_SECS             708
+#define IDD_TZVALUE                 710
 
 #define IDD_ABOUT                   900
 
@@ -129,6 +133,7 @@
 #define IDS_ERROR_TITLE             10900
 #define IDS_ERROR_CLKDATA           10901
 #define IDS_ERROR_NOTEBOOK          10902
+#define IDS_ERROR_ZONEINFO          10903
 
 
 // Help subtable IDs
