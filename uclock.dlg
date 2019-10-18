@@ -222,7 +222,8 @@ BEGIN
         SPINBUTTON      IDD_TZLATITUDE, 87, 49, 49, 12, WS_GROUP
         SPINBUTTON      IDD_TZLONGITUDE, 138, 49, 49, 12, SPBS_MASTER | WS_GROUP
         LTEXT           "TZ value:", -1, 3, 32, 67, 8, DT_BOTTOM
-        ENTRYFIELD      "", IDD_TZVALUE, 5, 21, 180, 8, ES_MARGIN | ES_READONLY
+        ENTRYFIELD      "", IDD_TZVALUE, 5, 21, 180, 8, ES_MARGIN
+                        CTLDATA 8, 64, 0, 0
         DEFPUSHBUTTON   "OK", DID_OK, 3, 2, 40, 12
         PUSHBUTTON      "Cancel", DID_CANCEL, 45, 2, 40, 12
     END

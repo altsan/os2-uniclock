@@ -138,6 +138,16 @@ typedef struct _Clock_Properties {
 } UCLKPROP, *PUCLKPROP;
 
 
+// Used to pass data in the timezone selection dialog
+typedef struct _TZ_Properties {
+    HAB     hab;                        // anchor-block handle
+    HMQ     hmq;                        // main message queue
+    CHAR    achDesc[ LOCDESC_MAXZ ];    // current description
+    CHAR    achTZ[ TZSTR_MAXZ ];        // TZ variable string
+    LONG    lLatitude, lLongitude;      // geographic coordinates
+} TZPROP, *PTZPROP;
+
+
 // Contains global application data
 typedef struct _Global_Data {
     HAB     hab;                        // anchor-block handle
@@ -195,6 +205,7 @@ BOOL ClkSettingsStyle( HWND hwnd, PUCLKPROP pConfig );
 MRESULT EXPENTRY ClrDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 BOOL SelectFont( HWND hwnd, PSZ pszFace, USHORT cbBuf );
 void SelectColour( HWND hwnd, HWND hwndCtl );
+void SelectTimeZone( HWND hwnd, PUCLKPROP pConfig );
 
 
 /* ------------------------------------------------------------------------- *
@@ -1930,7 +1941,7 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
             switch( SHORT1FROMMP( mp1 )) {
 
                 case IDD_TZSELECT:
-                    WinDlgBox( HWND_DESKTOP, hwnd, (PFNWP) TZDlgProc, 0, IDD_TIMEZONE, NULL );
+                    SelectTimeZone( hwnd, pConfig );
                     break;
 
                 // common buttons
@@ -2256,8 +2267,8 @@ BOOL ClkSettingsStyle( HWND hwnd, PUCLKPROP pConfig )
  * ------------------------------------------------------------------------- */
 MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 {
-    static HINI hTZDB = NULLHANDLE;
-    static HAB  hab;
+    static HINI    hTZDB = NULLHANDLE;
+    static PTZPROP pProps;
 
     ULONG  cb,
            len;
@@ -2270,12 +2281,16 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
            pszTZ,
            pszCoord, pszLat, pszLong;
 
+
     switch ( msg ) {
 
         case WM_INITDLG:
+            pProps = (PTZPROP) mp2;
+
+            WinSetDlgItemText( hwnd, IDD_TZVALUE, pProps->achTZ );
+
             // Open the TZ profile and get all application names
-            hab = WinQueryAnchorBlock( hwnd );
-            hTZDB = PrfOpenProfile( hab, "ZONEINFO.EN" );
+            hTZDB = PrfOpenProfile( pProps->hab, "ZONEINFO.EN" );
             if ( hTZDB &&
                  PrfQueryProfileSize( hTZDB, NULL, NULL, &cb ) && cb )
             {
@@ -2289,7 +2304,7 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                             if ((( len = strlen( pszApp )) == 2 ) &&
                                 ( strchr( pszApp, '/') == NULL ))
                             {
-                                PrfQueryProfileString( hTZDB, pszApp, ".EN", "Unknown",
+                                PrfQueryProfileString( hTZDB, pszApp, ".EN", pszApp,
                                                        (PVOID) achCountry, COUNTRYNAME_MAXZ );
                                 // Add country name to listbox
                                 sIdx = (SHORT) WinSendDlgItemMsg( hwnd, IDD_TZCOUNTRY, LM_INSERTITEM,
@@ -2301,7 +2316,12 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                             pszApp += len + 1;
                         } while ( len );
 
-                        sIdx = 0;   // TODO find the current country name
+                        sIdx = (SHORT) WinSendDlgItemMsg( hwnd, IDD_TZCOUNTRY,
+                                                          LM_SEARCHSTRING,
+                                                          MPFROM2SHORT( LSS_CASESENSITIVE | LSS_PREFIX, LIT_FIRST ),
+                                                          MPFROMP( pProps->achDesc ));
+                        // if (( sIdx == LIT_NONE ) || ( sIdx == LIT_ERROR ))
+                        //     sIdx = 0;
                         WinSendDlgItemMsg( hwnd, IDD_TZCOUNTRY, LM_SELECTITEM,
                                            MPFROMSHORT( sIdx ), MPFROMSHORT( TRUE ));
                     }
@@ -2311,7 +2331,7 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             else {
                 CHAR szError[256];
                 sprintf( szError, "Unable to load timezone data %s:\nWinGetLastError() = 0x%X\n",
-                         ZONE_FILE, ERRORIDERROR( WinGetLastError(hab) ));
+                         ZONE_FILE, ERRORIDERROR( WinGetLastError(pProps->hab) ));
                 ErrorPopup( szError );
             }
             CentreWindow( hwnd );
@@ -2382,6 +2402,10 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                     }
                     break;
                     // IDD_TZNAME
+
+                case DID_OK:
+                    WinQueryDlgItemText( hwnd, IDD_TZVALUE, LOCDESC_MAXZ, pProps->achDesc );
+                    break;
 
                 default: break;
             }
@@ -2641,6 +2665,33 @@ void SelectColour( HWND hwnd, HWND hwndCtl )
             WinSetPresParam( hwndCtl, PP_BACKGROUNDCOLOR, sizeof(clr), &clr );
         }
     }
+
+}
+
+
+/* ------------------------------------------------------------------------- *
+ * SelectTimeZone                                                            *
+ *                                                                           *
+ * Pop up the timezone selection dialog.                                     *
+ *                                                                           *
+ * Parameters:                                                               *
+ *   HWND hwnd        : handle of the current window.                        *
+ *   PUCLKPROP pConfig: pointer to the current clock properties.             *
+ *                                                                           *
+ * RETURNS: N/A                                                              *
+ * ------------------------------------------------------------------------- */
+void SelectTimeZone( HWND hwnd, PUCLKPROP pConfig )
+{
+    TZPROP tzp = {0};
+
+    tzp.hab = pConfig->hab;
+    tzp.hmq = pConfig->hmq;
+    WinQueryDlgItemText( hwnd, IDD_CITYLIST, LOCDESC_MAXZ, tzp.achDesc );
+    WinQueryDlgItemText( hwnd, IDD_TZDISPLAY, LOCDESC_MAXZ, tzp.achTZ );
+
+    WinDlgBox( HWND_DESKTOP, hwnd, (PFNWP) TZDlgProc, 0, IDD_TIMEZONE, &tzp );
+
+    WinSetDlgItemText( hwnd, IDD_TZDISPLAY, tzp.achTZ );
 
 }
 
