@@ -1,6 +1,7 @@
 # IBM C/C++ (VisualAge) Makefile for UNICLOCK, English version.
 #
 #
+# PMPF = 1
 
 CC     = icc.exe
 RC     = rc.exe
@@ -12,6 +13,11 @@ LFLAGS = /NOE /PMTYPE:PM /NOLOGO
 NAME   = uclock
 OBJS   = $(NAME).obj wtdpanel.obj
 LIBS   = libconv.lib libuls.lib
+
+!ifdef PMPF
+    LIBS   = $(LIBS) pmprintf.lib
+    CFLAGS = $(CFLAGS) /D_PMPRINTF_
+!endif
 
 !ifdef DEBUG
     CFLAGS   = $(CFLAGS) /Ti /Tm

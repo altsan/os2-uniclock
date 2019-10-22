@@ -19,6 +19,7 @@
 #include <uconv.h>
 #include <unidef.h>
 
+#include <PMPRINTF.H>
 
 // ----------------------------------------------------------------------------
 // MACROS
@@ -159,13 +160,16 @@ typedef struct _PM_National_Data {
     CHAR        szDS[ PRF_NTLDATA_MAXZ ]; // date separator (e.g. "/")
 } NATIONFMT, *PNATIONFMT;
 
+
 // Geographical coordinates (latitude & longitude)
+// Don't bother with seconds - even at its widest point, one minute is less
+// than 2km, and that should be more than precise enough for our purposes.
 typedef struct _Geo_Coordinates {
     SHORT       sLatitude;          // degrees latitude (-90 <-> 90)
     BYTE        bLaMin;             // minutes latitude (0-60)
     SHORT       sLongitude;         // degrees longitude (-180 <-> 180)
     BYTE        bLoMin;             // minutes longitude (0-60)
-} GEOCOORD;
+} GEOCOORD, *PGEOCOORD;
 
 
 // Configurable data for the world-time display, used by WM_CREATE/WM_QUERYCONFIG

@@ -1,0 +1,58 @@
+ZONEINFO FORMAT
+===============
+
+ZONEINFO.xx contains information about all known timezones and locations.
+'xx' is a two-letter language code (e.g. 'EN') representing the language
+in which the zone information is written (this scheme allows translated
+versions of the timezone database to be supported).
+
+This file is in OS/2 profile (a.k.a. INI) format. The file contents are
+structured as follows:
+
+1. Any number of application entries representing countries. These are named
+   according to two-letter ISO country code (e.g. 'UK', 'US', 'CA', 'DE').
+
+   Each of these application entries contains the following keys:
+
+   - .xx   = The full name of the country in the current language; 'xx'
+             is the same language code used in the filename.
+
+             (This naming scheme was originally adopted with an eye to
+             allowing multiple languages to be kept in the same ZONEINFO
+             file; this idea was abandoned as unworkable, but the naming
+             scheme remains.)
+
+   - A list of tzdata timezone names that exist (fully or partially) in
+     this country.  Each timezone name is a separate key; these names will
+     be cross-referenced to the timezone application entries (described
+     below).  Each name should therefore correspond to an existing timezone
+     application entry.
+
+     If the timezone name is prefixed with '*', it indicates that, in the
+     event that more than one timezone in this country resolves to the same
+     TZ string, this particular one should be kept (and not filtered out
+     as a duplicate by programs which would otherwise attempt to do so).
+
+     The value of each of the timezone name keys is the (localized and
+     translated) name of the corresponding timezone region.  This allows
+     the tzdata zone name style (continent/city) to be mapped to the more
+     usual country and region style.  (For example, 'America/Montreal'
+     maps to 'Canada', 'Eastern'.)
+
+
+2. Any number of application entries representing timezone names.  These
+   use the canonical tzdata names (in the format 'continent/city').
+
+   Each of these application entries contains the following keys:
+
+   - TZ           = The TZ environment variable string for this zone.
+
+   - Coordinates  = Geographical coordinates associated with this zone.  This
+                    is intended for future use.
+
+   - AdjustedOffset = The timezone's base UTC offset, converted into a positive
+                      integer by adding 43200.  This is useful for sorting
+                      zones by offset.
+
+All strings are UTF-8 encoded.
+

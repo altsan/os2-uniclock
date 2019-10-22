@@ -48,6 +48,7 @@
 #define IDD_CFGCLOCKS               300
 #define IDD_CLOCKADD                302
 #define IDD_CLOCKDEL                303
+#define IDD_COORDINATES             305
 #define IDD_CITYLIST                306
 #define IDD_TZSELECT                307
 #define IDD_TZDISPLAY               308
