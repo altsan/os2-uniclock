@@ -106,8 +106,8 @@ BEGIN
         CONTROL         "", IDD_LOCALES, 62, 3, 49, 109, WC_COMBOBOX,
                         CBS_DROPDOWNLIST | WS_GROUP | WS_TABSTOP |
                         WS_VISIBLE
-        LTEXT           "Coordinates:", -1, 149, 103, 55, 8, DT_VCENTER | NOT WS_VISIBLE
-        RTEXT           "", IDD_COORDINATES, 205, 103, 58, 8, DT_VCENTER
+        LTEXT           "Coordinates:", -1, 149, 103, 55, 8, DT_VCENTER
+        LTEXT           "", IDD_COORDINATES, 205, 103, 58, 8, DT_VCENTER
                         PRESPARAMS PP_FOREGROUNDCOLORINDEX, SYSCLR_WINDOWTEXT
         GROUPBOX        "Time format", -1, 4, 52, 259, 43
         LTEXT           "Normal:", -1, 8, 74, 50, 8

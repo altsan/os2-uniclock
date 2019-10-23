@@ -18,6 +18,7 @@
 
 #define COUNTRYNAME_MAXZ        100     // maximum length of a country name
 #define TZDATA_MAXZ             128     // maximum length of a TZ profile item
+#define ISO6709_MAXZ            16      // maximum length of an ISO 6709 coordinates string
 
 // used to indicate an undefined colour presentation parameter
 #define NO_COLOUR_PP            0xFF000000
@@ -211,6 +212,7 @@ BOOL SelectFont( HWND hwnd, PSZ pszFace, USHORT cbBuf );
 void SelectColour( HWND hwnd, HWND hwndCtl );
 void SelectTimeZone( HWND hwnd, PUCLKPROP pConfig );
 BOOL ParseTZCoordinates( PSZ pszCoord, PGEOCOORD pGC );
+void UnParseTZCoordinates( PSZ pszCoord, GEOCOORD coordinates );
 
 
 /* ------------------------------------------------------------------------- *
@@ -1663,6 +1665,12 @@ BOOL ClockNotebook( HWND hwnd, USHORT usNumber )
                     MPFROMLONG(props.clockData.flOptions | flBorders), MPVOID );
         WinSendMsg( pGlobal->clocks[usNumber], WTD_SETLOCALE,
                     MPFROMP(props.clockData.szLocale), MPVOID );
+        WinSendMsg( pGlobal->clocks[usNumber], WTD_SETCOORDINATES,
+                    MPFROM2SHORT(props.clockData.coordinates.sLatitude,
+                                 (SHORT)props.clockData.coordinates.bLaMin),
+                    MPFROM2SHORT(props.clockData.coordinates.sLongitude,
+                                 (SHORT)props.clockData.coordinates.bLoMin)
+                  );
 
         mp1 = ( props.clockData.flOptions & WTF_TIME_CUSTOM ) ?
               MPFROMP( props.clockData.uzTimeFmt ) : MPVOID;
@@ -1848,6 +1856,7 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
     UCHAR   szLocale[ ULS_LNAMEMAX + 1 ],
             szFormat[ STRFT_MAXZ ] = {0},
             szName[ LOCDESC_MAXZ ] = {0},
+            szCoord[ ISO6709_MAXZ ],
             szSysDef[ SZRES_MAXZ ],
             szLocDef[ SZRES_MAXZ ],
             szCustom[ SZRES_MAXZ ];
@@ -1895,11 +1904,12 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
             WinSendDlgItemMsg( hwnd, IDD_DATEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLocDef) );
             WinSendDlgItemMsg( hwnd, IDD_DATEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szCustom) );
 
-            // Select the current values
+            // Set the current values
             WinSetDlgItemText( hwnd, IDD_TZDISPLAY, pConfig->clockData.szTZ );
+            UnParseTZCoordinates( szCoord, pConfig->clockData.coordinates );
+            WinSetDlgItemText( hwnd, IDD_COORDINATES, szCoord );
 
             // description field
-            // (temporary until we can implement a proper city/location database)
             if ( pConfig->uconv &&
                 ( UniStrFromUcs( pConfig->uconv, szName,
                                  pConfig->clockData.uzDesc, LOCDESC_MAXZ ) == ULS_SUCCESS ))
@@ -2207,6 +2217,9 @@ BOOL ClkSettingsClock( HWND hwnd, PUCLKPROP pConfig )
     WinQueryDlgItemText( hwnd, IDD_CITYLIST, LOCDESC_MAXZ, szDesc );
     UniStrToUcs( pConfig->uconv, settings.uzDesc, szDesc, LOCDESC_MAXZ );
 
+    // geographic coordinates
+    memcpy( &(settings.coordinates), &(pConfig->clockData.coordinates), sizeof(GEOCOORD) );
+
     // formatting locale
     sIdx = (SHORT) WinSendDlgItemMsg( hwnd, IDD_LOCALES, LM_QUERYSELECTION,
                                       MPFROMSHORT(LIT_FIRST), 0 );
@@ -2301,41 +2314,44 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
     static HINI    hTZDB = NULLHANDLE;
     static PTZPROP pProps;
 
-    ULONG  cb,
-           len;
-    CHAR   achCountry[ COUNTRYNAME_MAXZ ] = {0};
-    UniChar *aucCountry[ COUNTRYNAME_MAXZ ] = {0};
-    PUCHAR pbuf;
-    SHORT  sIdx,
-           sCount;
-    PSZ    pszData, pszDataCopy,
-           pszTZ,
-           pszCoord;
+    ULONG    cb,
+             len;
+    CHAR     achCountry[ COUNTRYNAME_MAXZ ] = {0};
+    UniChar  aucCountry[ COUNTRYNAME_MAXZ ] = {0};
+    PUCHAR   pbuf;
+    LONG     lVal;
+    SHORT    sIdx,
+             sCount;
+    PSZ      pszData, pszDataCopy,
+             pszTZ,
+             pszCoord;
     GEOCOORD gc;
+
 
     switch ( msg ) {
 
         case WM_INITDLG:
-            pProps = (PTZPROP) mp2;
+            pProps = (PTZPROP) mp2;     // pointer to configuration structure
 
+            // Set the spinbutton bounds and default values
             WinSendDlgItemMsg( hwnd, IDD_TZLAT_DEGS, SPBM_SETLIMITS,
                                MPFROMLONG( 90 ), MPFROMLONG( -90 ));
-            WinSendDlgItemMsg( hwnd, IDD_TZLAT_DEGS, SPBM_SETCURRENTVALUE,
-                               MPFROMLONG( 0 ), 0L );
             WinSendDlgItemMsg( hwnd, IDD_TZLAT_MINS, SPBM_SETLIMITS,
                                MPFROMLONG( 60 ), MPFROMLONG( 0 ));
-            WinSendDlgItemMsg( hwnd, IDD_TZLAT_MINS, SPBM_SETCURRENTVALUE,
-                               MPFROMLONG( 0 ), 0L );
-
             WinSendDlgItemMsg( hwnd, IDD_TZLONG_DEGS, SPBM_SETLIMITS,
                                MPFROMLONG( 180 ), MPFROMLONG( -180 ));
-            WinSendDlgItemMsg( hwnd, IDD_TZLONG_DEGS, SPBM_SETCURRENTVALUE,
-                               MPFROMLONG( 0 ), 0L );
             WinSendDlgItemMsg( hwnd, IDD_TZLONG_MINS, SPBM_SETLIMITS,
                                MPFROMLONG( 60 ), MPFROMLONG( 0 ));
+/*
+            WinSendDlgItemMsg( hwnd, IDD_TZLAT_DEGS, SPBM_SETCURRENTVALUE,
+                               MPFROMLONG( 0 ), 0L );
+            WinSendDlgItemMsg( hwnd, IDD_TZLAT_MINS, SPBM_SETCURRENTVALUE,
+                               MPFROMLONG( 0 ), 0L );
+            WinSendDlgItemMsg( hwnd, IDD_TZLONG_DEGS, SPBM_SETCURRENTVALUE,
+                               MPFROMLONG( 0 ), 0L );
             WinSendDlgItemMsg( hwnd, IDD_TZLONG_MINS, SPBM_SETCURRENTVALUE,
                                MPFROMLONG( 0 ), 0L );
-
+*/
             // Open the TZ profile and get all application names
             hTZDB = PrfOpenProfile( pProps->hab, ZONE_FILE );
             if ( hTZDB &&
@@ -2345,12 +2361,17 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                 if ( pbuf ) {
                     if ( PrfQueryProfileData( hTZDB, NULL, NULL, pbuf, &cb ) && cb )
                     {
-                        PSZ pszApp = (PSZ) pbuf;
+                        PSZ pszApp = (PSZ) pbuf;    // Current application name
 
                         do {
+                            // See if this is a country code (two-letter acronym)
                             if ((( len = strlen( pszApp )) == 2 ) &&
                                 ( strchr( pszApp, '/') == NULL ))
                             {
+                                /* Query the full country name from the .<language> key
+                                 * (note we pass pszApp as the default, so if the query
+                                 * fails, the country name will simply be the country code)
+                                 */
                                 PrfQueryProfileString( hTZDB, pszApp, ".EN", pszApp,
                                                        (PVOID) achCountry, COUNTRYNAME_MAXZ );
 
@@ -2387,10 +2408,47 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             else {
                 ErrorMessage( hwnd, IDS_ERROR_ZONEINFO );
             }
+            /* Set the current TZ string value (we do this after selecting the
+             * default country+zone so that the selection event doesn't reset
+             * the value to the default for that zone - in case it's been
+             * customized).
+             */
             WinSetDlgItemText( hwnd, IDD_TZVALUE, pProps->achTZ );
+
+            // Ditto the coordinates
+            WinSendDlgItemMsg( hwnd, IDD_TZLAT_DEGS, SPBM_SETCURRENTVALUE,
+                               MPFROMLONG( (LONG)(pProps->coordinates.sLatitude) ), 0L );
+            WinSendDlgItemMsg( hwnd, IDD_TZLAT_MINS, SPBM_SETCURRENTVALUE,
+                               MPFROMLONG( (LONG)(pProps->coordinates.bLaMin) ), 0L );
+            WinSendDlgItemMsg( hwnd, IDD_TZLONG_DEGS, SPBM_SETCURRENTVALUE,
+                               MPFROMLONG( (LONG)(pProps->coordinates.sLongitude) ), 0L );
+            WinSendDlgItemMsg( hwnd, IDD_TZLONG_MINS, SPBM_SETCURRENTVALUE,
+                               MPFROMLONG( (LONG)(pProps->coordinates.bLoMin) ), 0L );
+
             CentreWindow( hwnd );
             break;
 
+
+        case WM_COMMAND:
+            switch( SHORT1FROMMP( mp1 )) {
+                case DID_OK:
+                    WinQueryDlgItemText( hwnd, IDD_TZVALUE, LOCDESC_MAXZ, pProps->achTZ );
+                    WinSendDlgItemMsg( hwnd, IDD_TZLAT_DEGS, SPBM_QUERYVALUE,
+                                       MPFROMP( &lVal ), MPFROM2SHORT( 0, SPBQ_UPDATEIFVALID ));
+                    pProps->coordinates.sLatitude = lVal;
+                    WinSendDlgItemMsg( hwnd, IDD_TZLAT_MINS, SPBM_QUERYVALUE,
+                                       MPFROMP( &lVal ), MPFROM2SHORT( 0, SPBQ_UPDATEIFVALID ));
+                    pProps->coordinates.bLaMin = lVal;
+                    WinSendDlgItemMsg( hwnd, IDD_TZLONG_DEGS, SPBM_QUERYVALUE,
+                                       MPFROMP( &lVal ), MPFROM2SHORT( 0, SPBQ_UPDATEIFVALID ));
+                    pProps->coordinates.sLongitude = lVal;
+                    WinSendDlgItemMsg( hwnd, IDD_TZLONG_MINS, SPBM_QUERYVALUE,
+                                       MPFROMP( &lVal ), MPFROM2SHORT( 0, SPBQ_UPDATEIFVALID ));
+                    pProps->coordinates.bLoMin = lVal;
+                    break;
+            }
+            break;
+            // WM_COMMAND
 
         case WM_CONTROL:
             switch(SHORT1FROMMP(mp1))
@@ -2405,7 +2463,7 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                                                             LM_QUERYITEMCOUNT,
                                                             0L, 0L );
                         for ( sIdx = 0; sIdx < sCount; sIdx++ ) {
-                            pszData = (PSZ) WinSendDlgItemMsg( hwnd, IDD_TZCOUNTRY,
+                            pszData = (PSZ) WinSendDlgItemMsg( hwnd, IDD_TZNAME,
                                                                LM_QUERYITEMHANDLE,
                                                                MPFROMSHORT( sIdx ),
                                                                0L );
@@ -2461,14 +2519,9 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                             WinSetDlgItemText( hwnd, IDD_TZVALUE, pszTZ );
                             free( pszDataCopy );
                         }
-
                     }
                     break;
                     // IDD_TZNAME
-
-                case DID_OK:
-                    WinQueryDlgItemText( hwnd, IDD_TZVALUE, LOCDESC_MAXZ, pProps->achTZ );
-                    break;
 
                 default: break;
             }
@@ -2494,7 +2547,7 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             sCount = (SHORT) WinSendDlgItemMsg( hwnd, IDD_TZNAME,
                                                 LM_QUERYITEMCOUNT, 0L, 0L );
             for ( sIdx = 0; sIdx < sCount; sIdx++ ) {
-                pszData = (PSZ) WinSendDlgItemMsg( hwnd, IDD_TZCOUNTRY,
+                pszData = (PSZ) WinSendDlgItemMsg( hwnd, IDD_TZNAME,
                                                    LM_QUERYITEMHANDLE,
                                                    MPFROMSHORT( sIdx ), 0L );
                 if ( pszData ) free( pszData );
@@ -2702,7 +2755,7 @@ BOOL SelectFont( HWND hwnd, PSZ pszFace, USHORT cbBuf )
  *                                                                           *
  * Parameters:                                                               *
  *   HWND hwnd   : handle of the current window.                             *
- *   HWND hwndCtl: handle of the window whose colour is being updated.       *
+ *   HWND hwndCtl: handle of the control whose colour is being updated.      *
  *                                                                           *
  * RETURNS: BOOL                                                             *
  * ------------------------------------------------------------------------- */
@@ -2746,10 +2799,14 @@ void SelectColour( HWND hwnd, HWND hwndCtl )
 void SelectTimeZone( HWND hwnd, PUCLKPROP pConfig )
 {
     TZPROP tzp = {0};
+    CHAR   achCoord[ ISO6709_MAXZ ] = {0};
 
+    // Populate the settings structure for passing data to/from the dialog
     tzp.hab = pConfig->hab;
     tzp.hmq = pConfig->hmq;
     tzp.uconv = pConfig->uconv;
+
+    memcpy( &(tzp.coordinates), &(pConfig->clockData.coordinates), sizeof(GEOCOORD) );
 
     if ( UniCreateUconvObject( (UniChar *) L"IBM-1208@map=display,path=no",
                                &(tzp.uconv1208) ) != 0 )
@@ -2758,9 +2815,14 @@ void SelectTimeZone( HWND hwnd, PUCLKPROP pConfig )
     WinQueryDlgItemText( hwnd, IDD_CITYLIST, LOCDESC_MAXZ, tzp.achDesc );
     WinQueryDlgItemText( hwnd, IDD_TZDISPLAY, LOCDESC_MAXZ, tzp.achTZ );
 
+    // Show & process the dialog
     WinDlgBox( HWND_DESKTOP, hwnd, (PFNWP) TZDlgProc, 0, IDD_TIMEZONE, &tzp );
 
+    // Update the settings
     WinSetDlgItemText( hwnd, IDD_TZDISPLAY, tzp.achTZ );
+    memcpy( &(pConfig->clockData.coordinates), &(tzp.coordinates), sizeof(GEOCOORD) );
+    UnParseTZCoordinates( achCoord, pConfig->clockData.coordinates );
+    WinSetDlgItemText( hwnd, IDD_COORDINATES, achCoord );
 
     if ( tzp.uconv1208 ) UniFreeUconvObject( tzp.uconv1208 );
 }
@@ -2843,11 +2905,11 @@ void TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry, PTZPROP pProps 
                         }
 
                         // Add zone name to listbox
-                        /* TODO: If we switch to using the localized region names,
-                         * what we should do here is construct a list of (unique)
-                         * names to keep. Then (after the loop), if the list is
-                         * non-empty we populate the name dropdown; otherwise
-                         * disable it.
+                        /* TODO: If we ever switch to using the localized region
+                         * names, then what we should do is construct a list of
+                         * (unique) names to keep. Then (after the loop), if the
+                         * list is non-empty we populate the name dropdown;
+                         * otherwise disable it.
                          */
                         sIdx = (SHORT) \
                                 WinSendDlgItemMsg( hwnd, IDD_TZNAME, LM_INSERTITEM,
@@ -2913,7 +2975,6 @@ BOOL ParseTZCoordinates( PSZ pszCoord, PGEOCOORD pGC )
     // Format is [+|-]DDMM[+|-]DDDMM or [+|-]DDMMSS[+|-]DDDMMSS
     if (( *p != '+') && ( *p != '-')) return FALSE;
     if ( sscanf( p, "%3d%2d", &iDeg, &iMin ) != 2 ) return FALSE;
-//    _PmpfF(("    --> Got Latitude: %d, %d", iDeg, iMin ));
 
     pGC->sLatitude = (SHORT) iDeg;
     pGC->bLaMin = (BYTE) iMin;
@@ -2922,10 +2983,36 @@ BOOL ParseTZCoordinates( PSZ pszCoord, PGEOCOORD pGC )
     } while ( *p && ( *p != '+') && ( *p != '-') && (( p - pszCoord ) <= 16 ));
     if ( *p == 0 ) return FALSE;
     if ( sscanf( p, "%4d%2d", &iDeg, &iMin ) != 2 ) return FALSE;
-//    _PmpfF(("    --> Got Longitude: %d, %d", iDeg, iMin ));
 
     pGC->sLongitude = (SHORT) iDeg;
     pGC->bLoMin = (BYTE) iMin;
     return TRUE;
+}
+
+
+/* ------------------------------------------------------------------------- *
+ * UnParseTZCoordinates                                                      *
+ *                                                                           *
+ * Generate geographic coordinates in ISO 6709 format from the contents of a *
+ * GEOCOORD structure.                                                       *
+ *                                                                           *
+ * Parameters:                                                               *
+ *   PSZ      pszCoord   : String buffer to contain the ISO 6709 coordinates.*
+ *                         must be at least 16 bytes (preallocated).     (I) *
+ *   GEOCOORD coordinates: UClock geographic coordinates structure.      (O) *
+ *                                                                           *
+ * RETURNS: BOOL                                                             *
+ *   TRUE if parsing was successful, FALSE otherwise.                        *
+ * ------------------------------------------------------------------------- */
+void UnParseTZCoordinates( PSZ pszCoord, GEOCOORD coordinates )
+{
+    int iLaDeg = coordinates.sLatitude,
+        iLaMin = coordinates.bLaMin,
+        iLoDeg = coordinates.sLongitude,
+        iLoMin = coordinates.bLoMin;
+
+    sprintf( pszCoord, "%c%02d%02d%c%03d%02d",
+             ( iLaDeg < 0 )? '-': '+', abs( iLaDeg ), iLaMin,
+             ( iLoDeg < 0 )? '-': '+', abs( iLoDeg ), iLoMin );
 }
 
