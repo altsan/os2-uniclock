@@ -100,7 +100,8 @@
 #define IDD_TZVALUE                 710
 
 #define IDD_ABOUT                   900
-
+#define IDD_VERSION                 901
+#define IDD_COPYRIGHT               902
 
 // Base ID for clock panel controls
 #define FIRST_CLOCK                 5000
@@ -110,9 +111,13 @@
 
 #define IDS_HELP_TITLE              10000
 
-#define IDS_BTN_OK                  10001
-#define IDS_BTN_CANCEL              10002
-#define IDS_BTN_HELP                10003
+#define IDS_LANG                    10001
+
+#define IDS_BTN_OK                  10002
+#define IDS_BTN_CANCEL              10003
+#define IDS_BTN_HELP                10004
+#define IDS_ABOUT_VERSION           10005
+#define IDS_ABOUT_COPYRIGHT         10006
 
 #define IDS_LOC_UTC                 10010
 #define IDS_LOC_DEFAULT             10011

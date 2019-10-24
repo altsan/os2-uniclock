@@ -37,6 +37,10 @@
 // GENERAL CONSTANTS
 //
 
+#define SZ_VERSION              "0.4"
+#define SZ_COPYRIGHT            "2015-2019"
+
+
 // The Unicode UCS-2 codepage
 #define UNICODE                 1200
 

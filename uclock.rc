@@ -8,9 +8,12 @@ ICON ICON_DOWN      "down.ico"
 
 STRINGTABLE
 BEGIN
+    IDS_LANG                            "EN"        // change for each translation
     IDS_BTN_OK                          "OK"
     IDS_BTN_CANCEL                      "Cancel"
     IDS_BTN_HELP                        "Help"
+    IDS_ABOUT_VERSION                   "Version %s"
+    IDS_ABOUT_COPYRIGHT                 "Copyright (C) %s Alex Taylor"
 END
 
 STRINGTABLE

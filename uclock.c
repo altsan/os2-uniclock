@@ -1182,9 +1182,26 @@ void UpdateTime( HWND hwnd )
  * ------------------------------------------------------------------------- */
 MRESULT EXPENTRY AboutDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 {
+    HAB  hab;
+    CHAR szBuffer[ SZRES_MAXZ ],
+         szText[ SZRES_MAXZ ];
+
     switch ( msg ) {
 
         case WM_INITDLG:
+            hab = WinQueryAnchorBlock( hwnd );
+            if ( WinLoadString( hab, 0, IDS_ABOUT_VERSION, SZRES_MAXZ-1, szBuffer ))
+                sprintf( szText, szBuffer, SZ_VERSION );
+            else
+                sprintf( szText, "V%s", SZ_VERSION );
+            WinSetDlgItemText( hwnd, IDD_VERSION, szText );
+
+            if ( WinLoadString( hab, 0, IDS_ABOUT_COPYRIGHT, SZRES_MAXZ-1, szBuffer ))
+                sprintf( szText, szBuffer, SZ_COPYRIGHT );
+            else
+                sprintf( szText, "(C) %s Alex Taylor", SZ_COPYRIGHT );
+            WinSetDlgItemText( hwnd, IDD_COPYRIGHT, szText );
+
             CentreWindow( hwnd );
             break;
 

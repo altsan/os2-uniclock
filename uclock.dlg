@@ -12,11 +12,12 @@ BEGIN
             PRESPARAMS PP_FONTNAMESIZE, "9.WarpSans"
     BEGIN
         ICON            ID_MAINPROGRAM, IDD_CLOCKLIST, 7, 34, 20, 16
-        DEFPUSHBUTTON   "~OK", DID_OK, 38, 2, 40, 12
+        DEFPUSHBUTTON   "OK", DID_OK, 38, 2, 40, 12
         LTEXT           "Universal Clock", -1, 38, 51, 150, 8
-        LTEXT           "version 0.3", -1, 38, 42, 150, 8
+                        PRESPARAMS PP_FONTNAMESIZE, "9.WarpSans Bold"
+        LTEXT           "", IDD_VERSION, 38, 42, 150, 8
         GROUPBOX        "", -1, 38, 39, 150, 4
-        LTEXT           "(C) 2015 Alex Taylor", -1, 38, 27, 150, 8
+        LTEXT           "", IDD_COPYRIGHT, 38, 27, 150, 8
         LTEXT           "Licensed under the GNU General Public License.", -1,
                         38, 18, 150, 8
     END

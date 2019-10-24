@@ -3,6 +3,9 @@
 #
 # PMPF = 1
 
+BL_NAME = "Universal Clock for OS/2"
+BL_VEND = "Alex Taylor"
+
 CC     = icc.exe
 RC     = rc.exe
 LINK   = ilink.exe
@@ -26,8 +29,10 @@ LIBS   = libconv.lib libuls.lib
 
 all         : $(NAME).exe
 
-$(NAME).exe : $(OBJS) $(NAME).h ids.h $(NAME).res
-                $(LINK) $(LFLAGS) $(OBJS) $(LIBS)
+$(NAME).exe : $(OBJS) $(NAME).h ids.h $(NAME).res Makefile
+                -touch $(NAME).def
+                -makedesc -D$(BL_NAME) -N$(BL_VEND) -V"^#define=SZ_VERSION,uclock.h" $(NAME).def
+                $(LINK) $(LFLAGS) $(OBJS) $(LIBS) $(NAME).def
                 $(RC) $(RFLAGS) $(NAME).res $@
 
 $(NAME).res : $(NAME).rc $(NAME).dlg ids.h program.ico
