@@ -63,6 +63,7 @@
 #define IDD_TIMESHORT2              318
 #define IDD_DATEFMT2                319
 #define IDD_DATESTR2                320
+#define IDD_USECOORDINATES          321
 
 #define IDD_CFGPRES                 400
 #define IDD_DISPLAYFONT             401
@@ -102,6 +103,7 @@
 #define IDD_ABOUT                   900
 #define IDD_VERSION                 901
 #define IDD_COPYRIGHT               902
+
 
 // Base ID for clock panel controls
 #define FIRST_CLOCK                 5000

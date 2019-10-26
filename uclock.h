@@ -88,13 +88,13 @@
  *   ³³³³³³³À display mode/size (0 == default size)
  *   ³³³³³³ÀÄ border lines      (0 == no border)
  *   ³³³³³ÀÄÄ clock style       (0 == use current font)
- *   ³³³³ÀÄÄÄ unused/TBD        [Use for place display? (0 == show city/country name)]
+ *   ³³³³ÀÄÄÄ place settings    (0 == no location info available)
  *   ³³³ÀÄÄÄÄ time display      (0 == use locale's standard time format)
  *   ³³ÀÄÄÄÄÄ alt. time display (0 == use locale's alternate time format, or 24hr if none)
  *   ³ÀÄÄÄÄÄÄ date display      (0 == use locale's standard date format)
  *   ÀÄÄÄÄÄÄÄ long date display (0 == use locale's long date format)
  */
-// * == not yet implemented
+// * == not yet implemented (for future use)
 #define WTF_MODE_LARGE          0x01        // * extra-large display mode
 #define WTF_MODE_COMPACT        0x02        // compact display mode
 #define WTF_MODE_TINY           0x04        // * extra-compact display mode
@@ -107,6 +107,9 @@
 #define WTF_CLOCK_BMP2          0x200       // * use style-2 bitmaps for clock numbers
 #define WTF_CLOCK_BMPCUSTOM     0x400       // * use custom bitmaps for clock numbers
 #define WTF_CLOCK_ANALOG        0x800       // * use an analog-style clock
+#define WTF_PLACE_HAVECOORD     0x1000      // we have geographic coordinates for this clock
+#define WTF_PLACE_HAVECITY      0x2000      // * we have a city name for this clock
+#define WTF_PLACE_HAVEWEATHER   0x4000      // * we can determine current weather for this clock
 #define WTF_TIME_ALT            0x10000     // use locale's alternate time format (deprecate)
 #define WTF_TIME_SYSTEM         0x20000     // use system default time format
 #define WTF_TIME_CUSTOM         0x40000     // use a customized time format
@@ -128,7 +131,7 @@
  * (e.g. keyboard focus, popup menu active, etc.).
  *
  * 0x00000000
- *   ³³³³³³³À description area             (0 == show city name)
+ *   ³³³³³³³À description/top area         (0 == show city name)
  *   ³³³³³³ÀÄ time/middle area             (0 == show (normal) time)
  *   ³³³³³ÀÄÄ date/bottom area             (0 == show (normal) date)
  *   ³³³³ÀÄÄÄ right area in compact view   (0 == show (normal) time)
@@ -138,14 +141,15 @@
  *   ÀÄÄÄÄÄÄÄ UI input styles              (0 == default)
  *
  */
-#define WTS_TOP_TZNAME          0x1         // * show TZ description text
-#define WTS_TOP_TZVAR           0x2         // * show TZ variable
-#define WTS_TOP_COORDINATES     0x4         // * show geographic coordinates
-#define WTS_MID_ALTTIME         0x10        // * show user's alternate time
-#define WTS_BOT_ALTDATE         0x100       // * show user's alternate date
-#define WTS_BOT_SUNTIME         0x200       // * show sunrise/sunset times
-#define WTS_CVR_DATE            0x1000      // show (normal) date (compact view)
-#define WTS_CVR_SUNTIME         0x2000      // * show sunrise/sunset times (compact view)
+// * == not yet implemented (which currently includes most of them)
+#define WTS_TOP_TZNAME          0x1         // * show TZ description text in top area
+#define WTS_TOP_TZVAR           0x2         // * show TZ variable in top area
+#define WTS_TOP_COORDINATES     0x4         // * show geographic coordinates in top area
+#define WTS_MID_ALTTIME         0x10        // * show user's alternate time in middle area
+#define WTS_BOT_ALTDATE         0x100       // * show user's alternate date in bottom area
+#define WTS_BOT_SUNTIME         0x200       // * show sunrise/sunset times in bottom area
+#define WTS_CVR_DATE            0x1000      // show (normal) date in compact view right
+#define WTS_CVR_SUNTIME         0x2000      // * show sunrise/sunset times in compact view right
 #define WTS_MIS_WEATHER         0x10000     // * display weather icon
 
 #define WTS_GUI_MENUPOPUP       0x2000000   // draw "active popup menu" border

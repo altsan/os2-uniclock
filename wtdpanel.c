@@ -39,7 +39,6 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
     UniChar    *puzPlaceName;           // passed place name
     PSZ         pszTZ,                  // passed TZ variable
                 pszLocaleName;          // passed locale name
-//FILE        *dbglog;
 
     switch( msg ) {
 
@@ -766,7 +765,7 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     // get the font metrics so we can do positioning calculations
     GpiQueryFontMetrics( hps, sizeof(FONTMETRICS), &fm );
 
-    lTxtOffset = max( (lHeight / 2) - (fm.lEmHeight / 2), fm.lMaxDescender + 1 );
+    lTxtOffset = 1 + max( (lHeight / 2) - (fm.lEmHeight / 2), fm.lMaxDescender + 1 );
 
     // define the left region (the timezone/city description area)
     rclLeft.xLeft = rcl.xLeft;

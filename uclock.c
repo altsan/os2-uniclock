@@ -1925,6 +1925,10 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
             WinSetDlgItemText( hwnd, IDD_TZDISPLAY, pConfig->clockData.szTZ );
             UnParseTZCoordinates( szCoord, pConfig->clockData.coordinates );
             WinSetDlgItemText( hwnd, IDD_COORDINATES, szCoord );
+            if ( pConfig->clockData.flOptions & WTF_PLACE_HAVECOORD ) {
+                WinCheckButton( hwnd, IDD_USECOORDINATES, TRUE );
+                WinEnableControl( hwnd, IDD_COORDINATES, TRUE );
+            }
 
             // description field
             if ( pConfig->uconv &&
@@ -2052,6 +2056,11 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
                         sIdx = (SHORT) WinSendMsg( hwndLB, LM_QUERYSELECTION, MPFROMSHORT(LIT_FIRST), 0 );
                         WinShowWindow( WinWindowFromID(hwnd, IDD_DATESTR2), (sIdx == 2)? TRUE: FALSE );
                     }
+                    break;
+
+                case IDD_USECOORDINATES:
+                    WinEnableControl( hwnd, IDD_COORDINATES,
+                                      (BOOL)WinQueryButtonCheckstate( hwnd, IDD_USECOORDINATES ));
                     break;
 
             } // end WM_CONTROL messages
@@ -2236,6 +2245,11 @@ BOOL ClkSettingsClock( HWND hwnd, PUCLKPROP pConfig )
 
     // geographic coordinates
     memcpy( &(settings.coordinates), &(pConfig->clockData.coordinates), sizeof(GEOCOORD) );
+
+    if ( WinQueryButtonCheckstate( hwnd, IDD_USECOORDINATES ) != 0 )
+        settings.flOptions |= WTF_PLACE_HAVECOORD;
+    else
+        settings.flOptions &= ~WTF_PLACE_HAVECOORD;
 
     // formatting locale
     sIdx = (SHORT) WinSendDlgItemMsg( hwnd, IDD_LOCALES, LM_QUERYSELECTION,
