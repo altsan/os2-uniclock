@@ -149,7 +149,7 @@
 #define WTS_BOT_ALTDATE         0x100       // * show user's alternate date in bottom area
 #define WTS_BOT_SUNTIME         0x200       // * show sunrise/sunset times in bottom area
 #define WTS_CVR_DATE            0x1000      // show (normal) date in compact view right
-#define WTS_CVR_SUNTIME         0x2000      // * show sunrise/sunset times in compact view right
+#define WTS_CVR_SUNTIME         0x2000      // show sunrise/sunset times in compact view right
 #define WTS_MIS_WEATHER         0x10000     // * display weather icon
 
 #define WTS_GUI_MENUPOPUP       0x2000000   // draw "active popup menu" border
@@ -199,28 +199,34 @@ typedef struct _WTDisplay_CData {
 // Full control data for the world-time display
 typedef struct _WTDisplay_Data {
     time_t        timeval;                  // current time (UTC)
+    time_t        tm_sunrise;               // sunrise time (UTC)
+    time_t        tm_sunset;                // sunset time (UTC)
     ULONG         flOptions;                // option settings
     ULONG         flState;                  // state flags
     LocaleObject  locale;                   // formatting locale
     UconvObject   uconv;                    // codepage conversion object
     GEOCOORD      coordinates;              // geographic coordinates
     NATIONFMT     sysTimeFmt;               // system default time format data
-    // TODO add sunrise & sunset times
     CHAR          szTZ[ TZSTR_MAXZ ];       // timezone (TZ string)
     CHAR          szDesc[ LOCDESC_MAXZ ];   // timezone/place description (codepage version)
     CHAR          szTime[ TIMESTR_MAXZ ];   // formatted time string      (codepage version)
     CHAR          szDate[ DATESTR_MAXZ ];   // formatted date string      (codepage version)
     CHAR          szTime2[ TIMESTR_MAXZ ];  // formatted alt. time string (codepage version)
     CHAR          szDate2[ DATESTR_MAXZ ];  // formatted alt. date string (codepage version)
+    CHAR          szSunR[ TIMESTR_MAXZ ];   // formatted sunrise time     (codepage version)
+    CHAR          szSunS[ TIMESTR_MAXZ ];   // formatted sunset time      (codepage version)
     UniChar       uzDesc[ LOCDESC_MAXZ ];   // timezone/place description (Unicode version)
     UniChar       uzTime[ TIMESTR_MAXZ ];   // formatted time string      (Unicode version)
     UniChar       uzDate[ DATESTR_MAXZ ];   // formatted date string      (Unicode version)
     UniChar       uzTime2[ TIMESTR_MAXZ ];  // formatted alt. time string (Unicode version)
     UniChar       uzDate2[ DATESTR_MAXZ ];  // formatted alt. string      (Unicode version)
+    UniChar       uzSunR[ TIMESTR_MAXZ ];   // formatted sunrise time     (Unicode version)
+    UniChar       uzSunS[ TIMESTR_MAXZ ];   // formatted sunset time      (Unicode version)
     UniChar       uzTimeFmt[ STRFT_MAXZ ];  // UniStrftime time format string
     UniChar       uzDateFmt[ STRFT_MAXZ ];  // UniStrftime date format string
     UniChar       uzTimeFmt2[ STRFT_MAXZ ]; // UniStrftime alt. time format string
     UniChar       uzDateFmt2[ STRFT_MAXZ ]; // UniStrftime alt. date format string
+    BOOL          fNight;                   // is night-time?
     BOOL          fUnicode;                 // using Unicode font?
     FATTRS        faNormal;                 // attributes of normal display font
     FATTRS        faTime;                   // attributes of time display font

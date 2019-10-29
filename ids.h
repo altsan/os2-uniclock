@@ -10,6 +10,8 @@
 
 #define ICON_UP                     5
 #define ICON_DOWN                   6
+#define ICON_DAY                    7
+#define ICON_NIGHT                  8
 
 // Menu resource IDs
 
@@ -36,8 +38,11 @@
 #define IDD_CFGCOMMON               200
 #define IDD_TITLEBAR                201
 #define IDD_BORDERS                 202
-#define IDD_VIEWSWITCH              205
-#define IDD_DESCWIDTH               206
+#define IDD_CYCLE_DATE              203
+#define IDD_CYCLE_SUN               204
+#define IDD_CYCLE_WEATHER           205
+#define IDD_VIEWSWITCH              206
+#define IDD_DESCWIDTH               207
 #define IDD_CLOCKLIST               210
 #define IDD_CLOCKUP                 211
 #define IDD_CLOCKDOWN               212

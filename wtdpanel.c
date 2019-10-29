@@ -1,4 +1,5 @@
 #include "uclock.h"
+#include "sunriset.h"
 
 // Internal defines
 #define FTYPE_NOTFOUND 0    // font does not exist
@@ -8,13 +9,20 @@
 
 #define PRF_NTLDATA_MAXZ    32  // max. length of a data item in PM_(Default)_National
 
+// convert coordinates from (degrees, minutes, seconds) into single decimal values
+#define DECIMAL_DEGREES( deg, min, sec )    ( (float)( deg + min/60 + sec/3600 ))
+
+// round a time_t value to midnight at the start of that day
+#define ROUND_TO_MIDNIGHT( time )           ( (int)(time / 86400) * 86400 )
+
 // Internal function prototypes
 void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, LONG clrBor, PWTDDATA pData );
 void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, LONG clrBor, PWTDDATA pdata );
 BYTE GetFontType( HPS hps, PSZ pszFontFace, PFATTRS pfAttrs, LONG lCY, BOOL bH );
 void SetFormatStrings( PWTDDATA pdata );
-void FormatTime( HWND hwnd, PWTDDATA pdata, struct tm *time );
-void FormatDate( HWND hwnd, PWTDDATA pdata, struct tm *time );
+BOOL FormatTime( HWND hwnd, PWTDDATA pdata, struct tm *time, UniChar *puzTime, PSZ pszTime );
+BOOL FormatDate( HWND hwnd, PWTDDATA pdata, struct tm *time );
+void SetSunTimes( HWND hwnd, PWTDDATA pdata );
 
 
 /* ------------------------------------------------------------------------- *
@@ -120,11 +128,25 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             ptl.y = SHORT2FROMMP( mp1 );
             if ( pdata->flOptions & WTF_MODE_COMPACT ) {
                 if ( WinPtInRect( WinQueryAnchorBlock(hwnd), &(pdata->rclDate), &ptl )) {
-                    if ( pdata->flState & WTS_CVR_DATE )
+                    // cycle to the next view
+                    if ( pdata->flState & WTS_CVR_DATE ) {
+                        // currently showing date
                         pdata->flState &= ~WTS_CVR_DATE;
-                    else
+                        //pdata->flState |= WTS_CVR_SUNTIME;
+                        //pdata->flState &= ~WTS_CVR_WEATHER;   // for future use
+                    }
+                    else if ( pdata->flState & WTS_CVR_SUNTIME ) {
+                        // currently showing sunrise/sunset
+                        pdata->flState &= ~WTS_CVR_DATE;
+                        //pdata->flState &= ~WTS_CVR_SUNTIME;
+                        //pdata->flState |= WTS_CVR_WEATHER;    // for future use
+                    }
+                    else {
+                        // currently showing time
                         pdata->flState |= WTS_CVR_DATE;
-                    // todo cycle through these and WTS_CVR_SUNTIME (and alt. date?)
+                        //pdata->flState &= ~WTS_CVR_SUNTIME;
+                        //pdata->flState &= ~WTS_CVR_WEATHER;   // for future use
+                    }
                     WinInvalidateRect( hwnd, &(pdata->rclDate), FALSE );
                 }
             }
@@ -271,6 +293,7 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             // if the time hasn't changed, do nothing
             if ( mp1 && (time_t) mp1 != pdata->timeval ) {
                 ctime = (time_t) mp1;
+                pdata->timeval = ctime;
 
                 // calculate the local time for this timezone
                 if ( pdata->szTZ[0] ) {
@@ -283,28 +306,12 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
                 // generate formatted time and date strings
                 if ( pdata->locale && ltime ) {
-                    FormatTime( hwnd, pdata, ltime );
-                    FormatDate( hwnd, pdata, ltime );
-/*
-                    rc = (ULONG) UniStrftime( pdata->locale, uzFTime,
-                                      TIMESTR_MAXZ-1, pdata->uzTimeFmt, ltime );
-                    if ( UniStrcmp( uzFTime, pdata->uzTime ) != 0 ) {
-                        UniStrcpy( pdata->uzTime, uzFTime );
-                        if (( rc = UniStrFromUcs( pdata->uconv, pdata->szTime,
-                                                  pdata->uzTime, TIMESTR_MAXZ )) != ULS_SUCCESS )
-                            pdata->szTime[0] = 0;
+                    if ( FormatTime( hwnd, pdata, ltime, pdata->uzTime, pdata->szTime ))
                         WinInvalidateRect( hwnd, &(pdata->rclTime), FALSE );
-                    }
-                    rc = (ULONG) UniStrftime( pdata->locale, uzFDate,
-                                      DATESTR_MAXZ-1, pdata->uzDateFmt, ltime );
-                    if ( UniStrcmp( uzFDate, pdata->uzDate ) != 0 ) {
-                        UniStrcpy( pdata->uzDate, uzFDate );
-                        if (( rc = UniStrFromUcs( pdata->uconv, pdata->szDate,
-                                                  pdata->uzDate, DATESTR_MAXZ )) != ULS_SUCCESS )
-                            pdata->szDate[0] = 0;
+                    if ( FormatDate( hwnd, pdata, ltime )) {
                         WinInvalidateRect( hwnd, &(pdata->rclDate), FALSE );
+                        SetSunTimes( hwnd, pdata );
                     }
-*/
                 }
 
             }
@@ -976,7 +983,7 @@ void SetFormatStrings( PWTDDATA pdata )
         // WTF_TIME_SHORT only applies to normal and system time mode (and
         // system will handle it separately at formatting time).
         // Unfortunately, there is no regular locale item for "default short
-        // time format", so we have to manually strip the seonds out of the
+        // time format", so we have to manually strip the seconds out of the
         // normal time format string.
         if (( UniQueryLocaleItem( pdata->locale, LOCI_sTimeFormat, &puzLOCI ) == ULS_SUCCESS ) &&
             ( UniQueryLocaleItem( pdata->locale, LOCI_sTime, &puzTSep ) == ULS_SUCCESS ))
@@ -1044,8 +1051,11 @@ void SetFormatStrings( PWTDDATA pdata )
  * conventions previously obtained from OS2.INI PM_Default_National (which   *
  * indicates the current "system default" formatting conventions).           *
  *                                                                           *
+ * RETURNS:                                                                  *
+ * TRUE if the displayable time has changed (and thus should be redrawn);    *
+ * FALSE otherwise.                                                          *
  * ------------------------------------------------------------------------- */
-void FormatTime( HWND hwnd, PWTDDATA pdata, struct tm *time )
+BOOL FormatTime( HWND hwnd, PWTDDATA pdata, struct tm *time, UniChar *puzTime, PSZ pszTime )
 {
     CHAR    szFTime[ TIMESTR_MAXZ ];
     UniChar uzFTime[ TIMESTR_MAXZ ];
@@ -1088,14 +1098,14 @@ void FormatTime( HWND hwnd, PWTDDATA pdata, struct tm *time )
         rc = (ULONG) UniStrftime( pdata->locale, uzFTime,
                                   TIMESTR_MAXZ-1, pdata->uzTimeFmt, time );
 
-    if ( UniStrcmp( uzFTime, pdata->uzTime ) != 0 ) {
-        UniStrcpy( pdata->uzTime, uzFTime );
-        if (( rc = UniStrFromUcs( pdata->uconv, pdata->szTime,
-                                  pdata->uzTime, TIMESTR_MAXZ )) != ULS_SUCCESS )
-            pdata->szTime[0] = 0;
-        WinInvalidateRect( hwnd, &(pdata->rclTime), FALSE );
+    if ( UniStrcmp( uzFTime, puzTime ) != 0 ) {
+        UniStrcpy( puzTime, uzFTime );
+        if (( rc = UniStrFromUcs( pdata->uconv, pszTime,
+                                  puzTime, TIMESTR_MAXZ )) != ULS_SUCCESS )
+            pszTime[0] = 0;
+        return TRUE;
     }
-
+    return FALSE;
 }
 
 
@@ -1108,8 +1118,11 @@ void FormatTime( HWND hwnd, PWTDDATA pdata, struct tm *time )
  * conventions previously obtained from OS2.INI PM_Default_National (which   *
  * indicates the current "system default" formatting conventions).           *
  *                                                                           *
+ * RETURNS:                                                                  *
+ * TRUE if the date has changed (meaning the display should be redrawn);     *
+ * FALSE otherwise.                                                          *
  * ------------------------------------------------------------------------- */
-void FormatDate( HWND hwnd, PWTDDATA pdata, struct tm *time )
+BOOL FormatDate( HWND hwnd, PWTDDATA pdata, struct tm *time )
 {
     CHAR    szFDate[ DATESTR_MAXZ ];
     UniChar uzFDate[ DATESTR_MAXZ ];
@@ -1146,13 +1159,65 @@ void FormatDate( HWND hwnd, PWTDDATA pdata, struct tm *time )
         if (( rc = UniStrFromUcs( pdata->uconv, pdata->szDate,
                                   pdata->uzDate, DATESTR_MAXZ )) != ULS_SUCCESS )
             pdata->szDate[0] = 0;
-        WinInvalidateRect( hwnd, &(pdata->rclDate), FALSE );
+        return TRUE;
     }
-
+    return FALSE;
 }
 
 
-/*
+/* ------------------------------------------------------------------------- *
+ * SetSunTimes                                                               *
+ *                                                                           *
+ * Calculates the sunrise/sunset times.                                      *
+ *                                                                           *
+ * ------------------------------------------------------------------------- */
+void SetSunTimes( HWND hwnd, PWTDDATA pdata )
+{
+    double     lon, lat,
+               rise, set;
+    CHAR       szEnv[ TZSTR_MAXZ+4 ] = {0};
+    time_t     ctime;
+    struct tm *gtime;
+
+    ctime = pdata->timeval;
+    gtime = gmtime( &ctime );
+    if ( !gtime ) return;
+
+    lat = DECIMAL_DEGREES( pdata->coordinates.sLatitude, pdata->coordinates.bLaMin, 0 );
+    lon = DECIMAL_DEGREES( pdata->coordinates.sLongitude, pdata->coordinates.bLoMin, 0 );
+
+    sun_rise_set( 1900 + gtime->tm_year, 1 + gtime->tm_mon, gtime->tm_mday,
+                  lon, lat, &rise, &set );
+
+    pdata->tm_sunrise = ROUND_TO_MIDNIGHT( pdata->timeval ) + rise * 3600;
+    pdata->tm_sunset  = ROUND_TO_MIDNIGHT( pdata->timeval ) + set * 3600;
+
+    // These times are all in UTC.
+    // Now convert sunrise into local time and generate the formatted string
+    ctime = pdata->tm_sunrise;
+    if ( pdata->szTZ[0] ) {
+        sprintf( szEnv, "TZ=%s", pdata->szTZ );
+        putenv( szEnv );
+        tzset();
+        gtime = localtime( &ctime );
+    } else
+        gtime = gmtime( &ctime );
+    FormatTime( hwnd, pdata, gtime, pdata->uzSunR, pdata->szSunR );
+
+    // And the same for sunset
+    ctime = pdata->tm_sunset;
+    if ( pdata->szTZ[0] )
+        gtime = localtime( &ctime );
+    else
+        gtime = gmtime( &ctime );
+    FormatTime( hwnd, pdata, gtime, pdata->uzSunS, pdata->szSunS );
+
+    // Force a redraw of the date area (where the indicator will be drawn?)
+    WinInvalidateRect( hwnd, &(pdata->rclDate), FALSE );
+}
+
+
+/* FOR QUICK REFERENCE:
 struct tm
    {
    int tm_sec;      // seconds after the minute [0-61]
@@ -1166,3 +1231,5 @@ struct tm
    int tm_isdst;    // Daylight Saving Time flag
 };
 */
+
+

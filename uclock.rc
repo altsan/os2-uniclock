@@ -4,6 +4,8 @@
 ICON ID_MAINPROGRAM "program.ico"
 ICON ICON_UP        "up.ico"
 ICON ICON_DOWN      "down.ico"
+ICON ICON_DAY       "day.ico"
+ICON ICON_NIGHT     "night.ico"
 
 
 STRINGTABLE

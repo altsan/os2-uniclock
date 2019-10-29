@@ -14,7 +14,7 @@ CFLAGS = /Gm /Ss /Q+ /Wuse      # /Wrea /Wuni
 RFLAGS = -x -n
 LFLAGS = /NOE /PMTYPE:PM /NOLOGO
 NAME   = uclock
-OBJS   = $(NAME).obj wtdpanel.obj
+OBJS   = $(NAME).obj wtdpanel.obj sunriset.obj
 LIBS   = libconv.lib libuls.lib
 
 !ifdef PMPF
