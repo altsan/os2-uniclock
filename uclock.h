@@ -11,6 +11,7 @@
 #define INCL_DOSPROCESS
 #define INCL_GPI
 #define INCL_WIN
+#define INCL_WINPOINTERS
 #include <os2.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,6 +76,7 @@
 #define WTD_SETSEPARATOR        ( WM_USER + 109 )
 #define WTD_QUERYCONFIG         ( WM_USER + 110 )
 #define WTD_QUERYOPTIONS        ( WM_USER + 111 )
+#define WTD_SETINDICATORS       ( WM_USER + 112 )
 
 
 // Custom presentation parameters for the world-time display control
@@ -226,7 +228,6 @@ typedef struct _WTDisplay_Data {
     UniChar       uzDateFmt[ STRFT_MAXZ ];  // UniStrftime date format string
     UniChar       uzTimeFmt2[ STRFT_MAXZ ]; // UniStrftime alt. time format string
     UniChar       uzDateFmt2[ STRFT_MAXZ ]; // UniStrftime alt. date format string
-    BOOL          fNight;                   // is night-time?
     BOOL          fUnicode;                 // using Unicode font?
     FATTRS        faNormal;                 // attributes of normal display font
     FATTRS        faTime;                   // attributes of time display font
@@ -234,6 +235,8 @@ typedef struct _WTDisplay_Data {
     RECTL         rclDesc;                  // defines the description area
     RECTL         rclTime;                  // defines the time display area
     RECTL         rclDate;                  // defines the date display area
+    HPOINTER      hptrDay;                  // daytime indicator icon
+    HPOINTER      hptrNight;                // nighttime indicator icon
 } WTDDATA, *PWTDDATA;
 
 

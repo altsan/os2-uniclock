@@ -374,20 +374,38 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
         /* .................................................................. *
          * WTD_SETCOORDINATES                                                 *
          *                                                                    *
-         *   - mp1 (USHORT/USHORT) - latitude coordinate (degrees/minutes)    *
-         *   - mp2 (USHORT/USHORT) - longitude coordinate (degrees/minutes)   *
+         *   - mp1 (SHORT/SHORT) - latitude coordinate (degrees/minutes)      *
+         *   - mp2 (SHORT/SHORT) - longitude coordinate (degrees/minutes)     *
          *                                                                    *
          * Set or change the geographic coordinates for the current location. *
          * These are used to calculate day/night and sunrise/sunset times.    *
+         * Degrees must be -90 to 90 for latitude, -180 to 180 for longitude. *
+         * Minutes must be 0 to 60.                                           *
+         *                                                                    *
+         * Set mp1 to 0xFFFFFFFF to unset the coordinates.                    *
          *                                                                    *
          * .................................................................. */
         case WTD_SETCOORDINATES:
             pdata = WinQueryWindowPtr( hwnd, 0 );
-            pdata->coordinates.sLatitude  = (SHORT) SHORT1FROMMP( mp1 );
-            pdata->coordinates.bLaMin     = (BYTE)  SHORT2FROMMP( mp1 );
-            pdata->coordinates.sLongitude = (SHORT) SHORT1FROMMP( mp2 );
-            pdata->coordinates.bLoMin     = (BYTE)  SHORT2FROMMP( mp2 );
-            // TODO calculate sunrise/sunset times
+            if ( (ULONG)mp1 == 0xFFFFFFFF ) {
+                pdata->coordinates.sLatitude  = 0;
+                pdata->coordinates.bLaMin     = 0;
+                pdata->coordinates.sLongitude = 0;
+                pdata->coordinates.bLoMin     = 0;
+                pdata->flState &= ~WTF_PLACE_HAVECOORD;
+            }
+            else {
+                // TODO validate the values
+                pdata->coordinates.sLatitude  = (SHORT) SHORT1FROMMP( mp1 );
+                pdata->coordinates.bLaMin     = (BYTE)  SHORT2FROMMP( mp1 );
+                pdata->coordinates.sLongitude = (SHORT) SHORT1FROMMP( mp2 );
+                pdata->coordinates.bLoMin     = (BYTE)  SHORT2FROMMP( mp2 );
+                pdata->flState |= WTF_PLACE_HAVECOORD;
+            }
+            /* There's no need to update the sunrise/sunset times here, as
+             * it will be done the next time WTD_SETDATETIME is called
+             * (which normally happens several times a second).
+             */
             return (MRESULT) 0;
 
 
@@ -452,6 +470,26 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             pdata->bSep = (UCHAR) mp1;
 
             WinInvalidateRect( hwnd, NULL, FALSE );
+            return (MRESULT) 0;
+
+
+        /* .................................................................. *
+         * WTD_SETINDICATORS                                                  *
+         *                                                                    *
+         *   - mp1 (HPTR) - Pointer to daytime indicator icon data            *
+         *   - mp2 (HPTR) - Pointer to nighttime indicator icon data          *
+         *                                                                    *
+         * Set the icons used for the day/night indicators.  These must be    *
+         * created by the parent application, probably from resources.  If    *
+         * the application ever destroys these icons, it must call this       *
+         * message again with both handles set to NULL.                       *
+         *                                                                    *
+         * .................................................................. */
+        case WTD_SETINDICATORS:
+            pdata = WinQueryWindowPtr( hwnd, 0 );
+            if ( mp1 ) pdata->hptrDay = (HPOINTER) mp1;
+            if ( mp2 ) pdata->hptrNight = (HPOINTER) mp2;
+            WinInvalidateRect( hwnd, &(pdata->rclDate), FALSE );
             return (MRESULT) 0;
 
 
@@ -674,6 +712,25 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
         GpiCharStringPosAt( hps, &ptl, &rclTime, CHS_CLIP, cb, pchText, NULL );
     }
 
+    // draw the day/night indicator, if applicable
+    if ( pdata->flOptions & WTF_PLACE_HAVECOORD ) {
+        ptl.x = rclTime.xRight - 40;
+        ptl.y = rclTime.yTop - 42;
+        if (( pdata->timeval < pdata->tm_sunrise ) ||
+            ( pdata->timeval > pdata->tm_sunset )) {
+            if ( pdata->hptrNight )
+                WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrNight, DP_NORMAL );
+            else
+                GpiCharStringPosAt( hps, &ptl, &rclTime, CHS_CLIP, 1, ")", NULL );
+        }
+        else {
+            if ( pdata->hptrDay )
+                WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrDay, DP_NORMAL );
+            else
+                GpiCharStringPosAt( hps, &ptl, &rclTime, CHS_CLIP, 1, "*", NULL );
+        }
+    }
+
     // draw the separator line for the top region
     rc = WinQueryPresParam( hwnd, PP_SEPARATORCOLOR, 0, &ulid,
                             sizeof(clrLine), &clrLine, QPF_NOINHERIT );
@@ -798,6 +855,25 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
 
     // paint the background
     WinFillRect( hps, &rcl, clrBG );
+
+    // draw the day/night indicator, if applicable
+    if ( pdata->flOptions & WTF_PLACE_HAVECOORD ) {
+        ptl.x = rclRight.xRight - 21;
+        ptl.y = max( 1, rclRight.yBottom + (lHeight / 2) - 10 );
+        if (( pdata->timeval < pdata->tm_sunrise ) ||
+            ( pdata->timeval > pdata->tm_sunset )) {
+            if ( pdata->hptrNight )
+                WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrNight, DP_NORMAL | DP_MINI );
+            else
+                GpiCharStringPosAt( hps, &ptl, &rclRight, CHS_CLIP, 1, ")", NULL );
+        }
+        else {
+            if ( pdata->hptrDay )
+                WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrDay, DP_NORMAL | DP_MINI );
+            else
+                GpiCharStringPosAt( hps, &ptl, &rclRight, CHS_CLIP, 1, "*", NULL );
+        }
+    }
 
     // draw the description string (if defined)
     if ( pdata->uzDesc[0] ) {

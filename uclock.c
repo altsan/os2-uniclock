@@ -154,9 +154,11 @@ typedef struct _TZ_Properties {
 
 // Contains global application data
 typedef struct _Global_Data {
-    HAB     hab;                        // anchor-block handle
-    HMQ     hmq;                        // main message queue
-    HINI    hIni;                       // program INI file
+    HAB      hab;                       // anchor-block handle
+    HMQ      hmq;                       // main message queue
+    HINI     hIni;                      // program INI file
+    HPOINTER hptrDay;                   // day indicator icon
+    HPOINTER hptrNight;                 // night indicator icon
 
     HWND    clocks[ MAX_CLOCKS ];       // array of clock-display controls
     HWND    hwndTB, hwndSM, hwndMM;     // titlebar and window control handles
@@ -543,6 +545,9 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
     if ( LoadIniData( &usVal, sizeof(USHORT), pGlobal->hIni, PRF_APP_PREFS, PRF_KEY_PERCOLUMN ))
         pGlobal->usPerColumn = usVal;
 
+    pGlobal->hptrDay = WinLoadPointer( HWND_DESKTOP, 0L, ICON_DAY );
+    pGlobal->hptrNight = WinLoadPointer( HWND_DESKTOP, 0L, ICON_NIGHT );
+
     LoadIniData( &(pGlobal->usClocks), sizeof(USHORT), pGlobal->hIni, PRF_APP_CLOCKDATA, PRF_KEY_NUMCLOCKS );
     if (pGlobal->usClocks > MAX_CLOCKS)
         pGlobal->usClocks = MAX_CLOCKS;
@@ -557,6 +562,9 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
                ( WinLoadString( pGlobal->hab, NULLHANDLE, IDS_LOC_UTC, SZRES_MAXZ-1, szRes )) &&
                ( UniStrToUcs( uconv, uzRes, szRes, SZRES_MAXZ ) == ULS_SUCCESS )))
             UniStrcpy( uzRes, L"UTC");
+
+        WinSendMsg( pGlobal->clocks[0], WTD_SETINDICATORS,
+                    MPFROMP( pGlobal->hptrDay ), MPFROMP( pGlobal->hptrNight ));
 
         pGlobal->clocks[0] = WinCreateWindow( hwndClient, WT_DISPLAY, "", 0L,
                                               0, 0, 0, 0, hwndClient, HWND_TOP, FIRST_CLOCK, NULL, NULL );
@@ -638,6 +646,9 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
         pGlobal->clocks[i] = WinCreateWindow( hwndClient, WT_DISPLAY, "", 0L,
                                               0, 0, 0, 0, hwndClient, HWND_TOP, FIRST_CLOCK+i, &wtInit, NULL );
         if ( ! pGlobal->clocks[i] ) continue;
+
+        WinSendMsg( pGlobal->clocks[i], WTD_SETINDICATORS,
+                    MPFROMP( pGlobal->hptrDay ), MPFROMP( pGlobal->hptrNight ));
 
         if ( fLook ) {
             if ( savedPP.clrFG != NO_COLOUR_PP )
@@ -1079,6 +1090,9 @@ BOOL AddNewClock( HWND hwnd )
     // only clock 0 should have a bottom border
     flOptions = WTF_BORDER_FULL;
     if ( usNew ) flOptions &= ~WTF_BORDER_BOTTOM;
+
+    WinSendMsg( hwndClock, WTD_SETINDICATORS,
+                MPFROMP(pGlobal->hptrDay), MPFROMP(pGlobal->hptrNight));
 
     // set default properties
     WinSendMsg( hwndClock, WTD_SETTIMEZONE, MPFROMP(pGlobal->szTZ), MPFROMP(uzRes));
@@ -1682,12 +1696,16 @@ BOOL ClockNotebook( HWND hwnd, USHORT usNumber )
                     MPFROMLONG(props.clockData.flOptions | flBorders), MPVOID );
         WinSendMsg( pGlobal->clocks[usNumber], WTD_SETLOCALE,
                     MPFROMP(props.clockData.szLocale), MPVOID );
-        WinSendMsg( pGlobal->clocks[usNumber], WTD_SETCOORDINATES,
-                    MPFROM2SHORT(props.clockData.coordinates.sLatitude,
-                                 (SHORT)props.clockData.coordinates.bLaMin),
-                    MPFROM2SHORT(props.clockData.coordinates.sLongitude,
-                                 (SHORT)props.clockData.coordinates.bLoMin)
-                  );
+        if ( props.clockData.flOptions & WTF_PLACE_HAVECOORD )
+            WinSendMsg( pGlobal->clocks[usNumber], WTD_SETCOORDINATES,
+                        MPFROM2SHORT(props.clockData.coordinates.sLatitude,
+                                     (SHORT)props.clockData.coordinates.bLaMin),
+                        MPFROM2SHORT(props.clockData.coordinates.sLongitude,
+                                     (SHORT)props.clockData.coordinates.bLoMin)
+                      );
+        else
+            WinSendMsg( pGlobal->clocks[usNumber], WTD_SETCOORDINATES,
+                        MPFROMLONG( 0xFFFFFFFF ), MPFROMLONG( 0xFFFFFFFF ));
 
         mp1 = ( props.clockData.flOptions & WTF_TIME_CUSTOM ) ?
               MPFROMP( props.clockData.uzTimeFmt ) : MPVOID;
@@ -2245,7 +2263,6 @@ BOOL ClkSettingsClock( HWND hwnd, PUCLKPROP pConfig )
 
     // geographic coordinates
     memcpy( &(settings.coordinates), &(pConfig->clockData.coordinates), sizeof(GEOCOORD) );
-
     if ( WinQueryButtonCheckstate( hwnd, IDD_USECOORDINATES ) != 0 )
         settings.flOptions |= WTF_PLACE_HAVECOORD;
     else

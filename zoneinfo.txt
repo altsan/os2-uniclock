@@ -47,8 +47,8 @@ structured as follows:
 
    - TZ           = The TZ environment variable string for this zone.
 
-   - Coordinates  = Geographical coordinates associated with this zone.  This
-                    is intended for future use.
+   - Coordinates  = Geographical coordinates associated with this zone, in
+                    ISO6709 sign-degrees-minutes[-seconds] format.  
 
    - AdjustedOffset = The timezone's base UTC offset, converted into a positive
                       integer by adding 43200.  This is useful for sorting
