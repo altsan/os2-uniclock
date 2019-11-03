@@ -1728,7 +1728,6 @@ BOOL ClockNotebook( HWND hwnd, USHORT usNumber )
             sprintf( szFont, "10.%s", props.clockStyle.szFont );
             WinSetPresParam( pGlobal->clocks[usNumber], PP_FONTNAMESIZE, strlen(szFont)+1, szFont );
         }
-
     }
 
     UniFreeUconvObject( props.uconv );

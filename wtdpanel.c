@@ -10,10 +10,13 @@
 #define PRF_NTLDATA_MAXZ    32  // max. length of a data item in PM_(Default)_National
 
 // convert coordinates from (degrees, minutes, seconds) into single decimal values
-#define DECIMAL_DEGREES( deg, min, sec )    ( (float)( deg + min/60 + sec/3600 ))
+#define DECIMAL_DEGREES( deg, min, sec )    ( (double)( deg + min/60 + sec/3600 ))
 
 // round a time_t value to midnight at the start of that day
-#define ROUND_TO_MIDNIGHT( time )           ( (int)(time / 86400) * 86400 )
+#define ROUND_TO_MIDNIGHT( time )           ( floor(time / 86400) * 86400 )
+
+// boolean check for whether the given time is daytime.
+#define IS_DAYTIME( now, sunrise, sunset )    (( now > sunrise ) && ( now < sunset ))
 
 // Internal function prototypes
 void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, LONG clrBor, PWTDDATA pData );
@@ -392,7 +395,7 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                 pdata->coordinates.bLaMin     = 0;
                 pdata->coordinates.sLongitude = 0;
                 pdata->coordinates.bLoMin     = 0;
-                pdata->flState &= ~WTF_PLACE_HAVECOORD;
+                pdata->flOptions &= ~WTF_PLACE_HAVECOORD;
             }
             else {
                 // TODO validate the values
@@ -400,7 +403,7 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                 pdata->coordinates.bLaMin     = (BYTE)  SHORT2FROMMP( mp1 );
                 pdata->coordinates.sLongitude = (SHORT) SHORT1FROMMP( mp2 );
                 pdata->coordinates.bLoMin     = (BYTE)  SHORT2FROMMP( mp2 );
-                pdata->flState |= WTF_PLACE_HAVECOORD;
+                pdata->flOptions |= WTF_PLACE_HAVECOORD;
             }
             /* There's no need to update the sunrise/sunset times here, as
              * it will be done the next time WTD_SETDATETIME is called
@@ -586,9 +589,11 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
                 rclMiddle,              // area of middle region
                 rclTime,                // area of time display in the middle region == pdata->rclTime
                 rclBottom;              // area of bottom (date) region == pdata->rclDate
+//    LONG        timeOffset;             // current time as seconds relative to midnight
     ULONG       ulid,
                 rc;
 
+//    timeOffset = pdata->timeval - ROUND_TO_MIDNIGHT( pdata->timeval );
 
     lHeight = rcl.yTop - rcl.yBottom;
     lCell = (lHeight / 5) - 1;
@@ -716,18 +721,17 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     if ( pdata->flOptions & WTF_PLACE_HAVECOORD ) {
         ptl.x = rclTime.xRight - 40;
         ptl.y = rclTime.yTop - 42;
-        if (( pdata->timeval < pdata->tm_sunrise ) ||
-            ( pdata->timeval > pdata->tm_sunset )) {
-            if ( pdata->hptrNight )
-                WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrNight, DP_NORMAL );
-            else
-                GpiCharStringPosAt( hps, &ptl, &rclTime, CHS_CLIP, 1, ")", NULL );
-        }
-        else {
+        if ( IS_DAYTIME( pdata->timeval, pdata->tm_sunrise, pdata->tm_sunset )) {
             if ( pdata->hptrDay )
                 WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrDay, DP_NORMAL );
             else
                 GpiCharStringPosAt( hps, &ptl, &rclTime, CHS_CLIP, 1, "*", NULL );
+        }
+        else {
+            if ( pdata->hptrNight )
+                WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrNight, DP_NORMAL );
+            else
+                GpiCharStringPosAt( hps, &ptl, &rclTime, CHS_CLIP, 1, ")", NULL );
         }
     }
 
@@ -773,9 +777,12 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     RECTL       rclLeft,                // area of top (description) region == pdata->rclDesc
                 rclRight,               // area of middle region
                 rclDateTime;            // clipping area of date/time display in the right region == pdata->rclTime
+//    LONG        timeOffset;             // current time as seconds relative to midnight
     ULONG       ulid,
                 rc;
 
+
+//    timeOffset = pdata->timeval - ROUND_TO_MIDNIGHT( pdata->timeval );
 
     lWidth = rcl.xRight - rcl.xLeft;
     lHeight = rcl.yTop - rcl.yBottom;
@@ -860,18 +867,17 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     if ( pdata->flOptions & WTF_PLACE_HAVECOORD ) {
         ptl.x = rclRight.xRight - 21;
         ptl.y = max( 1, rclRight.yBottom + (lHeight / 2) - 10 );
-        if (( pdata->timeval < pdata->tm_sunrise ) ||
-            ( pdata->timeval > pdata->tm_sunset )) {
-            if ( pdata->hptrNight )
-                WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrNight, DP_NORMAL | DP_MINI );
-            else
-                GpiCharStringPosAt( hps, &ptl, &rclRight, CHS_CLIP, 1, ")", NULL );
-        }
-        else {
+        if ( IS_DAYTIME( pdata->timeval, pdata->tm_sunrise, pdata->tm_sunset )) {
             if ( pdata->hptrDay )
                 WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrDay, DP_NORMAL | DP_MINI );
             else
                 GpiCharStringPosAt( hps, &ptl, &rclRight, CHS_CLIP, 1, "*", NULL );
+        }
+        else {
+            if ( pdata->hptrNight )
+                WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrNight, DP_NORMAL | DP_MINI );
+            else
+                GpiCharStringPosAt( hps, &ptl, &rclRight, CHS_CLIP, 1, ")", NULL );
         }
     }
 
@@ -1249,47 +1255,100 @@ BOOL FormatDate( HWND hwnd, PWTDDATA pdata, struct tm *time )
  * ------------------------------------------------------------------------- */
 void SetSunTimes( HWND hwnd, PWTDDATA pdata )
 {
-    double     lon, lat,
-               rise, set;
+    double     lon, lat,        // geographic coordinate values
+               rise, set;       // sunrise/sunset times (in hours UTC)
     CHAR       szEnv[ TZSTR_MAXZ+4 ] = {0};
-    time_t     ctime;
-    struct tm *gtime;
+    time_t     utime,           // calendar time (UTC)
+               midnight;        // calendar time of local midnight
+    struct tm *ltime;           // broken-down local time
+    BOOL       fHasTZ = FALSE;  // is a TZ variable defined for this clock?
 
-    ctime = pdata->timeval;
-    gtime = gmtime( &ctime );
-    if ( !gtime ) return;
+    if ( !( pdata->flOptions & WTF_PLACE_HAVECOORD )) {
+        pdata->tm_sunrise = 0;
+        pdata->tm_sunset = 0;
+        pdata->uzSunS[0] = 0;
+        pdata->szSunS[0] = 0;
+        pdata->uzSunR[0] = 0;
+        pdata->szSunR[0] = 0;
+        return;
+    }
 
-    lat = DECIMAL_DEGREES( pdata->coordinates.sLatitude, pdata->coordinates.bLaMin, 0 );
-    lon = DECIMAL_DEGREES( pdata->coordinates.sLongitude, pdata->coordinates.bLoMin, 0 );
-
-    sun_rise_set( 1900 + gtime->tm_year, 1 + gtime->tm_mon, gtime->tm_mday,
-                  lon, lat, &rise, &set );
-
-    pdata->tm_sunrise = ROUND_TO_MIDNIGHT( pdata->timeval ) + rise * 3600;
-    pdata->tm_sunset  = ROUND_TO_MIDNIGHT( pdata->timeval ) + set * 3600;
-
-    // These times are all in UTC.
-    // Now convert sunrise into local time and generate the formatted string
-    ctime = pdata->tm_sunrise;
     if ( pdata->szTZ[0] ) {
         sprintf( szEnv, "TZ=%s", pdata->szTZ );
         putenv( szEnv );
         tzset();
-        gtime = localtime( &ctime );
-    } else
-        gtime = gmtime( &ctime );
-    FormatTime( hwnd, pdata, gtime, pdata->uzSunR, pdata->szSunR );
+        fHasTZ = TRUE;
+    }
+    utime = pdata->timeval;
+    ltime = fHasTZ? localtime( &utime ): gmtime( &utime );
+    if ( !ltime ) return;
+
+    // Get the coordinates into the expected format and calculate the sun times
+    lat = DECIMAL_DEGREES( pdata->coordinates.sLatitude, pdata->coordinates.bLaMin, 0 );
+    lon = DECIMAL_DEGREES( pdata->coordinates.sLongitude, pdata->coordinates.bLoMin, 0 );
+    sun_rise_set( 1900 + ltime->tm_year, 1 + ltime->tm_mon, ltime->tm_mday,
+                  lon, lat, &rise, &set );
+
+    /* Get the calendar time of midnight (at day's start). Note we have to
+     * factor in the zone offset (defined in IBM C runtime variable _timezone),
+     * in case local time falls in a different day than UTC.
+     */
+    midnight = pdata->timeval - _timezone;
+    midnight = ROUND_TO_MIDNIGHT( midnight );
+
+//    _PmpfF(("(%s) Rise %f, Set: %f, Zone offset: %d, midnight: %f", pdata->szDesc, rise, set, _timezone, midnight ));
+
+    // Convert sunrise/sunset from decimal hours to full calendar time
+    pdata->tm_sunrise = midnight + floor( rise * 3600 );
+    pdata->tm_sunset  = midnight + floor( set * 3600 );
+
+    /*
+    otime = utime - _timezone;
+    gtime = fHasTZ? localtime( &otime ): gmtime( &otime );
+
+    // Save sunrise/sunset times as seconds since midnight
+//    pdata->tm_sunrise = floor( rise * 3600 );
+//    pdata->tm_sunset  = floor( set * 3600 );
+
+    // Adjust for +/-1 day difference
+    if (( ltime->tm_year > gtime->tm_year ) ||
+        ( ltime->tm_mon  > gtime->tm_mon  ) ||
+        ( ltime->tm_mday > gtime->tm_mday ))
+    {
+        _PmpfF(("Adjusting sunrise/sunset +1 day"));
+        pdata->tm_sunrise += 86400;
+        pdata->tm_sunset  += 86400;
+    }
+    else if (( ltime->tm_year < gtime->tm_year ) ||
+        ( ltime->tm_mon  < gtime->tm_mon  ) ||
+        ( ltime->tm_mday < gtime->tm_mday ))
+    {
+        _PmpfF(("Adjusting sunrise/sunset -1 day"));
+        pdata->tm_sunrise -= 86400;
+        pdata->tm_sunset  -= 86400;
+    }
+     */
+
+
+    // These calendar times are all in UTC, of course.
+    // Now convert sunrise into local time and generate the formatted string
+    utime = pdata->tm_sunrise;
+    ltime = fHasTZ? localtime( &utime ): gmtime( &utime );
+    FormatTime( hwnd, pdata, ltime, pdata->uzSunR, pdata->szSunR );
 
     // And the same for sunset
-    ctime = pdata->tm_sunset;
-    if ( pdata->szTZ[0] )
-        gtime = localtime( &ctime );
-    else
-        gtime = gmtime( &ctime );
-    FormatTime( hwnd, pdata, gtime, pdata->uzSunS, pdata->szSunS );
+    utime = pdata->tm_sunset;
+    ltime = fHasTZ? localtime( &utime ): gmtime( &utime );
+    FormatTime( hwnd, pdata, ltime, pdata->uzSunS, pdata->szSunS );
 
-    // Force a redraw of the date area (where the indicator will be drawn?)
-    WinInvalidateRect( hwnd, &(pdata->rclDate), FALSE );
+    _PmpfF(("(%s) sunrise: %s, sunset: %s (currently: %s)", pdata->szDesc, pdata->szSunR, pdata->szSunS, pdata->szTime ));
+    _PmpfF(("     sunrise: %f, sunset: %f (currently %f)", pdata->tm_sunrise, pdata->tm_sunset, pdata->timeval ));
+
+    // Force a redraw of the indicator area
+    if ( pdata->flOptions & WTF_MODE_COMPACT )
+        WinInvalidateRect( hwnd, &(pdata->rclDate), FALSE );
+    else
+        WinInvalidateRect( hwnd, &(pdata->rclTime), FALSE );
 }
 
 
