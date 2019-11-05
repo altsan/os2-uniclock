@@ -3,14 +3,16 @@ Universal Clock & WTDPanel
 
 This is a multi-timezone 'world clock' control and application for OS/2.  
 
-The implementation is based around a special PM window class, 'WTDPanel', which
+The implementation is based around a special PM window class, _WTDPanel_, which
 represents a single clock with a timezone, description, and various configuration
 and styling options. The application, called 'Universal Clock', allows multiple
 WTDPanels to be shown and managed.  The WTDPanel class, however, could easily be
 taken for use in other applications or widgets.
 
-Other planned (but not yet implemented) features include sunrise/sunset display, 
-and possibly local weather reports.
+This design also allows each clock panel to define its own colours, fonts, and
+string formatting conventions.
+
+Note: WTDPanel incorporates the public domain 'sunriset' module by Paul Schlyter.
 
 
 License

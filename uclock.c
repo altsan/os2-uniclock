@@ -8,7 +8,7 @@
 
 #define HELP_FILE               "uclock.hlp"
 #define INI_FILE                "uclock.ini"
-#define ZONE_FILE               "ZONEINFO.EN"
+#define ZONE_FILE               "ZONEINFO"
 
 // min. size of the program window (not used yet)
 //#define US_MIN_WIDTH            100
@@ -17,6 +17,7 @@
 #define LOCALE_BUF_MAX          4096    // maximum length of a locale list
 
 #define COUNTRYNAME_MAXZ        100     // maximum length of a country name
+#define PROFILE_MAXZ            32      // maximum length of INI file name (without path)
 #define TZDATA_MAXZ             128     // maximum length of a TZ profile item
 #define ISO6709_MAXZ            16      // maximum length of an ISO 6709 coordinates string
 
@@ -179,42 +180,42 @@ typedef struct _Global_Data {
 // FUNCTION PROTOTYPES
 
 MRESULT EXPENTRY MainWndProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
-void ResizeClocks( HWND hwnd );
-MRESULT PaintClient( HWND hwnd );
+void             ResizeClocks( HWND hwnd );
+MRESULT          PaintClient( HWND hwnd );
 MRESULT EXPENTRY AboutDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
-BOOL WindowSetup( HWND hwnd, HWND hwndClient );
-void CentreWindow( HWND hwnd );
-void ErrorMessage( HWND hwnd, USHORT usID );
-void ToggleTitleBar( PUCLGLOBAL pGlobal, HWND hwndFrame, BOOL fOn );
-void OpenProfile( PUCLGLOBAL pGlobal );
-BOOL LoadIniData( PVOID pData, USHORT cb, HINI hIni, PSZ pszApp, PSZ pszKey );
-void SaveSettings( HWND hwnd );
-void UpdateTime( HWND hwnd );
-BOOL AddNewClock( HWND hwnd );
-void DeleteClock( HWND hwnd, PUCLGLOBAL pGlobal, USHORT usClock );
-void ConfigNotebook( HWND hwnd );
+BOOL             WindowSetup( HWND hwnd, HWND hwndClient );
+void             CentreWindow( HWND hwnd );
+void             ErrorMessage( HWND hwnd, USHORT usID );
+void             ToggleTitleBar( PUCLGLOBAL pGlobal, HWND hwndFrame, BOOL fOn );
+void             OpenProfile( PUCLGLOBAL pGlobal );
+BOOL             LoadIniData( PVOID pData, USHORT cb, HINI hIni, PSZ pszApp, PSZ pszKey );
+void             SaveSettings( HWND hwnd );
+void             UpdateTime( HWND hwnd );
+BOOL             AddNewClock( HWND hwnd );
+void             DeleteClock( HWND hwnd, PUCLGLOBAL pGlobal, USHORT usClock );
+void             ConfigNotebook( HWND hwnd );
 MRESULT EXPENTRY CfgDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
-BOOL CfgPopulateNotebook( HWND hwnd, PUCFGDATA pConfig );
+BOOL             CfgPopulateNotebook( HWND hwnd, PUCFGDATA pConfig );
 MRESULT EXPENTRY CfgCommonPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 MRESULT EXPENTRY CfgClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 MRESULT EXPENTRY CfgPresPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
-void TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry, PTZPROP pProps );
-void CfgPopulateClockList( HWND hwnd, PUCFGDATA pConfig );
-void CfgSettingsCommon( HWND hwnd, PUCFGDATA pConfig );
-BOOL ClockNotebook( HWND hwnd, USHORT usNumber );
+void             TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry, PTZPROP pProps );
+void             CfgPopulateClockList( HWND hwnd, PUCFGDATA pConfig );
+void             CfgSettingsCommon( HWND hwnd, PUCFGDATA pConfig );
+BOOL             ClockNotebook( HWND hwnd, USHORT usNumber );
 MRESULT EXPENTRY ClkDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
-BOOL ClkPopulateNotebook( HWND hwnd, PUCLKPROP pConfig );
+BOOL             ClkPopulateNotebook( HWND hwnd, PUCLKPROP pConfig );
 MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 MRESULT EXPENTRY ClkStylePageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
-BOOL ClkSettingsClock( HWND hwnd, PUCLKPROP pConfig );
-BOOL ClkSettingsStyle( HWND hwnd, PUCLKPROP pConfig );
+BOOL             ClkSettingsClock( HWND hwnd, PUCLKPROP pConfig );
+BOOL             ClkSettingsStyle( HWND hwnd, PUCLKPROP pConfig );
 MRESULT EXPENTRY ClrDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
-BOOL SelectFont( HWND hwnd, PSZ pszFace, USHORT cbBuf );
-void SelectColour( HWND hwnd, HWND hwndCtl );
-void SelectTimeZone( HWND hwnd, PUCLKPROP pConfig );
-BOOL ParseTZCoordinates( PSZ pszCoord, PGEOCOORD pGC );
-void UnParseTZCoordinates( PSZ pszCoord, GEOCOORD coordinates );
+BOOL             SelectFont( HWND hwnd, PSZ pszFace, USHORT cbBuf );
+void             SelectColour( HWND hwnd, HWND hwndCtl );
+void             SelectTimeZone( HWND hwnd, PUCLKPROP pConfig );
+BOOL             ParseTZCoordinates( PSZ pszCoord, PGEOCOORD pGC );
+void             UnParseTZCoordinates( PSZ pszCoord, GEOCOORD coordinates );
 
 
 /* ------------------------------------------------------------------------- *
@@ -2363,7 +2364,9 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
     ULONG    cb,
              len;
-    CHAR     achCountry[ COUNTRYNAME_MAXZ ] = {0};
+    CHAR     achLang[ 6 ] = {0},
+             achProfile[ PROFILE_MAXZ ] = {0},
+             achCountry[ COUNTRYNAME_MAXZ ] = {0};
     UniChar  aucCountry[ COUNTRYNAME_MAXZ ] = {0};
     PUCHAR   pbuf;
     LONG     lVal;
@@ -2389,18 +2392,12 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                                MPFROMLONG( 180 ), MPFROMLONG( -180 ));
             WinSendDlgItemMsg( hwnd, IDD_TZLONG_MINS, SPBM_SETLIMITS,
                                MPFROMLONG( 60 ), MPFROMLONG( 0 ));
-/*
-            WinSendDlgItemMsg( hwnd, IDD_TZLAT_DEGS, SPBM_SETCURRENTVALUE,
-                               MPFROMLONG( 0 ), 0L );
-            WinSendDlgItemMsg( hwnd, IDD_TZLAT_MINS, SPBM_SETCURRENTVALUE,
-                               MPFROMLONG( 0 ), 0L );
-            WinSendDlgItemMsg( hwnd, IDD_TZLONG_DEGS, SPBM_SETCURRENTVALUE,
-                               MPFROMLONG( 0 ), 0L );
-            WinSendDlgItemMsg( hwnd, IDD_TZLONG_MINS, SPBM_SETCURRENTVALUE,
-                               MPFROMLONG( 0 ), 0L );
-*/
+
             // Open the TZ profile and get all application names
-            hTZDB = PrfOpenProfile( pProps->hab, ZONE_FILE );
+            if ( ! WinLoadString( pProps->hab, 0, IDS_LANG, sizeof(achLang)-1, achLang ))
+                strcpy( achLang, "EN");
+            sprintf( achProfile, "%s.%s", ZONE_FILE, achLang );
+            hTZDB = PrfOpenProfile( pProps->hab, achProfile );
             if ( hTZDB &&
                  PrfQueryProfileSize( hTZDB, NULL, NULL, &cb ) && cb )
             {
@@ -2633,7 +2630,6 @@ MRESULT EXPENTRY ClrDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                 WinPostMsg( hwnd, WM_CLOSE, MPVOID, MPVOID );
                 break;
             }
-
             WinSetWindowULong( hwnd, QWL_USER, (ULONG) cwdata );
             cwdata->rgbold = *cwdata->rgb;
             cwdata->hwndCol = WinWindowFromID( hwnd, ID_WHEEL );
@@ -3017,7 +3013,7 @@ BOOL ParseTZCoordinates( PSZ pszCoord, PGEOCOORD pGC )
 
     if ( !p || ( *p == 0 )) return FALSE;
 
-    _PmpfF((" --> Parsing coordinate string: %s", pszCoord ));
+//    _PmpfF((" --> Parsing coordinate string: %s", pszCoord ));
 
     // Format is [+|-]DDMM[+|-]DDDMM or [+|-]DDMMSS[+|-]DDDMMSS
     if (( *p != '+') && ( *p != '-')) return FALSE;

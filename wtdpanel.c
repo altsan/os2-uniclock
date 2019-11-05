@@ -589,11 +589,9 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
                 rclMiddle,              // area of middle region
                 rclTime,                // area of time display in the middle region == pdata->rclTime
                 rclBottom;              // area of bottom (date) region == pdata->rclDate
-//    LONG        timeOffset;             // current time as seconds relative to midnight
     ULONG       ulid,
                 rc;
 
-//    timeOffset = pdata->timeval - ROUND_TO_MIDNIGHT( pdata->timeval );
 
     lHeight = rcl.yTop - rcl.yBottom;
     lCell = (lHeight / 5) - 1;
@@ -632,9 +630,10 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     // we will draw the time string using a larger font size
     lCell = lHeight / 3;
     if ( fbType == FTYPE_BITMAP ) {
-        // Bitmap fonts can't be scaled by increasing the charbox; we have to
-        // go and find the specific font name + point size that fits within
-        // our adjusted cell size.
+        /* Bitmap fonts can't be scaled by increasing the charbox; we have to
+         * go and find the specific font name + point size that fits within
+         * our adjusted cell size.
+         */
         memset( &fontAttrs2, 0, sizeof( FATTRS ));
         fontAttrs2.usRecordLength = sizeof( FATTRS );
         fontAttrs2.fsType         = FATTR_TYPE_MBCS;
@@ -720,7 +719,7 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     // draw the day/night indicator, if applicable
     if ( pdata->flOptions & WTF_PLACE_HAVECOORD ) {
         ptl.x = rclTime.xRight - 40;
-        ptl.y = rclTime.yTop - 42;
+        ptl.y -= 20;
         if ( IS_DAYTIME( pdata->timeval, pdata->tm_sunrise, pdata->tm_sunset )) {
             if ( pdata->hptrDay )
                 WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrDay, DP_NORMAL );
@@ -777,12 +776,9 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     RECTL       rclLeft,                // area of top (description) region == pdata->rclDesc
                 rclRight,               // area of middle region
                 rclDateTime;            // clipping area of date/time display in the right region == pdata->rclTime
-//    LONG        timeOffset;             // current time as seconds relative to midnight
     ULONG       ulid,
                 rc;
 
-
-//    timeOffset = pdata->timeval - ROUND_TO_MIDNIGHT( pdata->timeval );
 
     lWidth = rcl.xRight - rcl.xLeft;
     lHeight = rcl.yTop - rcl.yBottom;
@@ -1289,9 +1285,10 @@ void SetSunTimes( HWND hwnd, PWTDDATA pdata )
     sun_rise_set( 1900 + ltime->tm_year, 1 + ltime->tm_mon, ltime->tm_mday,
                   lon, lat, &rise, &set );
 
-    /* Get the calendar time of midnight (at day's start). Note we have to
+    /* Get the calendar time of midnight (at day's start).  Note we have to
      * factor in the zone offset (defined in IBM C runtime variable _timezone),
      * in case local time falls in a different day than UTC.
+     * (This must be done in two steps or the macro will return wrong results.)
      */
     midnight = pdata->timeval - _timezone;
     midnight = ROUND_TO_MIDNIGHT( midnight );
@@ -1302,36 +1299,8 @@ void SetSunTimes( HWND hwnd, PWTDDATA pdata )
     pdata->tm_sunrise = midnight + floor( rise * 3600 );
     pdata->tm_sunset  = midnight + floor( set * 3600 );
 
-    /*
-    otime = utime - _timezone;
-    gtime = fHasTZ? localtime( &otime ): gmtime( &otime );
-
-    // Save sunrise/sunset times as seconds since midnight
-//    pdata->tm_sunrise = floor( rise * 3600 );
-//    pdata->tm_sunset  = floor( set * 3600 );
-
-    // Adjust for +/-1 day difference
-    if (( ltime->tm_year > gtime->tm_year ) ||
-        ( ltime->tm_mon  > gtime->tm_mon  ) ||
-        ( ltime->tm_mday > gtime->tm_mday ))
-    {
-        _PmpfF(("Adjusting sunrise/sunset +1 day"));
-        pdata->tm_sunrise += 86400;
-        pdata->tm_sunset  += 86400;
-    }
-    else if (( ltime->tm_year < gtime->tm_year ) ||
-        ( ltime->tm_mon  < gtime->tm_mon  ) ||
-        ( ltime->tm_mday < gtime->tm_mday ))
-    {
-        _PmpfF(("Adjusting sunrise/sunset -1 day"));
-        pdata->tm_sunrise -= 86400;
-        pdata->tm_sunset  -= 86400;
-    }
-     */
-
-
     // These calendar times are all in UTC, of course.
-    // Now convert sunrise into local time and generate the formatted string
+    // Convert sunrise into local time and generate the formatted string
     utime = pdata->tm_sunrise;
     ltime = fHasTZ? localtime( &utime ): gmtime( &utime );
     FormatTime( hwnd, pdata, ltime, pdata->uzSunR, pdata->szSunR );
