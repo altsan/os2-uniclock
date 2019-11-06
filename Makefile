@@ -38,6 +38,10 @@ $(NAME).exe : $(OBJS) $(NAME).h ids.h $(NAME).res Makefile
 $(NAME).res : $(NAME).rc $(NAME).dlg ids.h program.ico
                 $(RC) -r -n $(NAME).rc $@
 
+wtdpanel.obj: wtdpanel.c uclock.h ids.h
+
+uclock.obj  : uclock.c uclock.h ids.h
+
 clean       :
                 -del $(OBJS) $(NAME).res $(NAME).exe 2>NUL
 

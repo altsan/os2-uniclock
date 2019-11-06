@@ -26,6 +26,10 @@ void SetFormatStrings( PWTDDATA pdata );
 BOOL FormatTime( HWND hwnd, PWTDDATA pdata, struct tm *time, UniChar *puzTime, PSZ pszTime );
 BOOL FormatDate( HWND hwnd, PWTDDATA pdata, struct tm *time );
 void SetSunTimes( HWND hwnd, PWTDDATA pdata );
+void DrawSunriseIndicator( HPS hps );
+void DrawSunsetIndicator( HPS hps );
+void DrawDayIndicator( HPS hps );
+void DrawNightIndicator( HPS hps );
 
 
 /* ------------------------------------------------------------------------- *
@@ -133,22 +137,37 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                 if ( WinPtInRect( WinQueryAnchorBlock(hwnd), &(pdata->rclDate), &ptl )) {
                     // cycle to the next view
                     if ( pdata->flState & WTS_CVR_DATE ) {
-                        // currently showing date
+                        // currently showing date - cycle to time
                         pdata->flState &= ~WTS_CVR_DATE;
                         //pdata->flState |= WTS_CVR_SUNTIME;
                         //pdata->flState &= ~WTS_CVR_WEATHER;   // for future use
                     }
                     else if ( pdata->flState & WTS_CVR_SUNTIME ) {
-                        // currently showing sunrise/sunset
+                        // currently showing sunrise/sunset - not yet implemented
                         pdata->flState &= ~WTS_CVR_DATE;
                         //pdata->flState &= ~WTS_CVR_SUNTIME;
                         //pdata->flState |= WTS_CVR_WEATHER;    // for future use
                     }
                     else {
-                        // currently showing time
+                        // currently showing time (default) - cycle to date
                         pdata->flState |= WTS_CVR_DATE;
                         //pdata->flState &= ~WTS_CVR_SUNTIME;
                         //pdata->flState &= ~WTS_CVR_WEATHER;   // for future use
+                    }
+                    WinInvalidateRect( hwnd, &(pdata->rclDate), FALSE );
+                }
+            }
+            else {      // default (medium) view
+                if ( WinPtInRect( WinQueryAnchorBlock(hwnd), &(pdata->rclDate), &ptl )) {
+                    // date (bottom) area - cycle to the next view
+                    if ( pdata->flState & WTS_BOT_SUNTIME ) {
+                        // currently showing sunrise/sunset time, cycle to date
+                        pdata->flState &= ~WTS_BOT_SUNTIME;
+                    }
+                    else {
+                        // currently showing date, cycle to sunrise/sunset
+                        if ( pdata->flOptions & WTF_PLACE_HAVECOORD )
+                            pdata->flState |= WTS_BOT_SUNTIME;
                     }
                     WinInvalidateRect( hwnd, &(pdata->rclDate), FALSE );
                 }
@@ -432,6 +451,7 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
             // update the UniStrftime format strings
             SetFormatStrings( pdata );
+            SetSunTimes( hwnd, pdata );
 
             WinInvalidateRect( hwnd, NULL, FALSE );
             return (MRESULT) 0;
@@ -443,10 +463,11 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
          *   - mp1 (UniChar *)  - New UniStrftime time format specifier       *
          *   - mp2 (UniChar *)  - New UniStrftime date format specifier       *
          *                                                                    *
-         * Set the custom UniStrftime time/date formatting strings.  These    *
-         * are ignored unless WTF_TIME_CUSTOM and/or WTF_DATE_CUSTOM are      *
-         * set in the flOptions field in WTDDATA.  To set only one of the two *
-         * strings, simply specify MPVOID (NULL) for the other.               *
+         * Set the custom UniStrftime formatting strings for primary date and *
+         * time display.  These strings are only set if WTF_TIME_CUSTOM       *
+         * and/or WTF_DATE_CUSTOM are set in the WTDATA flOptions field.  To  *
+         * set only one of the two strings, simply specify MPVOID (NULL) for  *
+         * the other and it will not be changed.                              *
          *                                                                    *
          * .................................................................. */
         case WTD_SETFORMATS:
@@ -455,8 +476,31 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                 UniStrncpy( pdata->uzTimeFmt, (UniChar *) mp1, STRFT_MAXZ );
             if ( mp2 && ( pdata->flOptions & WTF_DATE_CUSTOM ))
                 UniStrncpy( pdata->uzDateFmt, (UniChar *) mp2, STRFT_MAXZ );
+            SetSunTimes( hwnd, pdata );
             return (MRESULT) 0;
 
+
+        /* .................................................................. *
+         * WTD_SETALTFORMATS                                                  *
+         *                                                                    *
+         *   - mp1 (UniChar *)  - New UniStrftime time format specifier       *
+         *   - mp2 (UniChar *)  - New UniStrftime date format specifier       *
+         *                                                                    *
+         * Set the custom UniStrftime formatting strings for alternate date   *
+         * and time display.  These strings are only set if WTF_ATIME_CUSTOM  *
+         * and/or WTF_ADATE_CUSTOM are set in the WTDATA flOptions field.  To *
+         * set only one of the two strings, simply specify MPVOID (NULL) for  *
+         * the other and it will not be changed.                              *
+         *                                                                    *
+         * .................................................................. *
+        case WTD_SETALTFORMATS:
+            pdata = WinQueryWindowPtr( hwnd, 0 );
+            if ( mp1 && ( pdata->flOptions & WTF_ATIME_CUSTOM ))
+                UniStrncpy( pdata->uzTimeFmt2, (UniChar *) mp1, STRFT_MAXZ );
+            if ( mp2 && ( pdata->flOptions & WTF_ADATE_CUSTOM ))
+                UniStrncpy( pdata->uzDateFmt2, (UniChar *) mp2, STRFT_MAXZ );
+            return (MRESULT) 0;
+        */
 
         /* .................................................................. *
          * WTD_SETSEPARATOR                                                   *
@@ -623,7 +667,7 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     fontAttrs.usCodePage = bUnicode ? UNICODE : 0;
 
     // set the required text size and make the font active
-    if (( GpiCreateLogFont( hps, NULL, 1L, &fontAttrs )) == GPI_ERROR ) return;  // WinEndPaint first!!
+    if (( GpiCreateLogFont( hps, NULL, 1L, &fontAttrs )) == GPI_ERROR ) return;
     GpiSetCharBox( hps, &sfCell );
     GpiSetCharSet( hps, 1L );
 
@@ -649,7 +693,7 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     lTBHeight = lHeight / 4;
     lTBOffset = max( (lTBHeight / 2) - (fm.lEmHeight / 2), fm.lMaxDescender + 1 );
     lTmHeight = rcl.yTop - rcl.yBottom - (lTBHeight * 2) - 2;
-    lTmInset  = fm.lAveCharWidth * 2;   // TODO allow space for daylight indicator etc.
+    lTmInset  = max( fm.lEmInc / 2, 6 );
 
     // define the top region (the timezone/city description area)
     rclTop.xLeft = rcl.xLeft;
@@ -686,18 +730,43 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     if ( pdata->uzDesc[0] ) {
         pchText = bUnicode ? (PCH) pdata->uzDesc : (PCH) pdata->szDesc;
         cb = bUnicode ? UniStrlen(pdata->uzDesc) * 2 : strlen( pdata->szDesc );
-        ptl.x = rclTop.xLeft + fm.lAveCharWidth;
+        ptl.x = rclTop.xLeft + lTmInset;
         ptl.y = rclTop.yBottom + lTBOffset;
         GpiCharStringPosAt( hps, &ptl, &rclTop, CHS_CLIP, cb, pchText, NULL );
     }
 
-    // draw the date string
+    // draw the bottom area text
     if ( pdata->uzDate[0] ) {
-        pchText = bUnicode ? (PCH) pdata->uzDate : (PCH) pdata->szDate;
-        cb = bUnicode ? UniStrlen(pdata->uzDate) * 2 : strlen( pdata->szDate );
-        ptl.x = rclBottom.xLeft + fm.lAveCharWidth;
-        ptl.y = rclBottom.yBottom + lTBOffset;
-        GpiCharStringPosAt( hps, &ptl, &rclBottom, CHS_CLIP, cb, pchText, NULL );
+        if ( pdata->flState & WTS_BOT_SUNTIME ) {
+            // sunrise/sunset times
+            ptl.x = rclBottom.xLeft + lTmInset;
+            ptl.y = rclBottom.yBottom + 20;
+            GpiMove( hps, &ptl );
+            DrawSunriseIndicator( hps );
+            pchText = bUnicode ? (PCH) pdata->uzSunR : (PCH) pdata->szSunR;
+            cb = bUnicode ? UniStrlen(pdata->uzSunR) * 2 : strlen( pdata->szSunR );
+            ptl.x += 20;
+            ptl.y = rclBottom.yBottom + lTBOffset;
+            GpiCharStringPosAt( hps, &ptl, &rclBottom, CHS_CLIP, cb, pchText, NULL );
+            GpiQueryCurrentPosition( hps, &ptl );
+            ptl.x += 3 * lTmInset;
+            ptl.y = rclBottom.yBottom + 20;
+            GpiMove( hps, &ptl );
+            DrawSunsetIndicator( hps );
+            pchText = bUnicode ? (PCH) pdata->uzSunS : (PCH) pdata->szSunS;
+            cb = bUnicode ? UniStrlen(pdata->uzSunS) * 2 : strlen( pdata->szSunS );
+            ptl.x += 20;
+            ptl.y = rclBottom.yBottom + lTBOffset;
+            GpiCharStringPosAt( hps, &ptl, &rclBottom, CHS_CLIP, cb, pchText, NULL );
+        }
+        else {
+            // date string
+            pchText = bUnicode ? (PCH) pdata->uzDate : (PCH) pdata->szDate;
+            cb = bUnicode ? UniStrlen(pdata->uzDate) * 2 : strlen( pdata->szDate );
+            ptl.x = rclBottom.xLeft + lTmInset;
+            ptl.y = rclBottom.yBottom + lTBOffset;
+            GpiCharStringPosAt( hps, &ptl, &rclBottom, CHS_CLIP, cb, pchText, NULL );
+        }
     }
 
     // draw the time string
@@ -718,19 +787,28 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
 
     // draw the day/night indicator, if applicable
     if ( pdata->flOptions & WTF_PLACE_HAVECOORD ) {
-        ptl.x = rclTime.xRight - 40;
-        ptl.y -= 20;
+        ptl.x = rclMiddle.xRight - 44;
         if ( IS_DAYTIME( pdata->timeval, pdata->tm_sunrise, pdata->tm_sunset )) {
-            if ( pdata->hptrDay )
+            if ( pdata->hptrDay ) {
+                ptl.y = rclMiddle.yBottom + (lTmHeight / 2) - 20;
                 WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrDay, DP_NORMAL );
-            else
-                GpiCharStringPosAt( hps, &ptl, &rclTime, CHS_CLIP, 1, "*", NULL );
+            }
+            else {
+                ptl.y = rclMiddle.yBottom + (lTmHeight / 2) + 8;
+                GpiMove( hps, &ptl );
+                DrawDayIndicator( hps );
+            }
         }
         else {
-            if ( pdata->hptrNight )
+            if ( pdata->hptrNight ) {
+                ptl.y = rclMiddle.yBottom + (lTmHeight / 2) - 20;
                 WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrNight, DP_NORMAL );
-            else
-                GpiCharStringPosAt( hps, &ptl, &rclTime, CHS_CLIP, 1, ")", NULL );
+            }
+            else {
+                ptl.y = rclMiddle.yBottom + (lTmHeight / 2) + 8;
+                GpiMove( hps, &ptl );
+                DrawNightIndicator( hps );
+            }
         }
     }
 
@@ -767,6 +845,7 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
                 lCell,                  // desired character-cell height
                 lHeight, lWidth,        // dimensions of control rectangle (minus border)
                 lLWidth,                // width of the left display area
+                lTxtInset,              // default left text margin
                 lTxtOffset;             // baseline offset from centre of displayable areas
     BOOL        fCY = TRUE;             // use cell height for size calculation (vs width)?
     CHAR        szFont[ FACESIZE+4 ];   // current font pres.param
@@ -833,6 +912,7 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     GpiQueryFontMetrics( hps, sizeof(FONTMETRICS), &fm );
 
     lTxtOffset = 1 + max( (lHeight / 2) - (fm.lEmHeight / 2), fm.lMaxDescender + 1 );
+    lTxtInset = max( fm.lEmInc / 2, 6 );
 
     // define the left region (the timezone/city description area)
     rclLeft.xLeft = rcl.xLeft;
@@ -848,7 +928,7 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     rclRight.yTop = rcl.yTop;
 
     rclDateTime.xLeft = rclRight.xLeft;
-    rclDateTime.xRight = rclRight.xRight - (2 * fm.lAveCharWidth);
+    rclDateTime.xRight = rclRight.xRight - 22;
     rclDateTime.yBottom = rclRight.yBottom;
     rclDateTime.yTop = rclRight.yTop;
     pdata->rclTime = rclDateTime;
@@ -862,18 +942,27 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     // draw the day/night indicator, if applicable
     if ( pdata->flOptions & WTF_PLACE_HAVECOORD ) {
         ptl.x = rclRight.xRight - 21;
-        ptl.y = max( 1, rclRight.yBottom + (lHeight / 2) - 10 );
         if ( IS_DAYTIME( pdata->timeval, pdata->tm_sunrise, pdata->tm_sunset )) {
-            if ( pdata->hptrDay )
+            if ( pdata->hptrDay ) {
+                ptl.y = max( 1, rclRight.yBottom + (lHeight / 2) - 10 );
                 WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrDay, DP_NORMAL | DP_MINI );
-            else
-                GpiCharStringPosAt( hps, &ptl, &rclRight, CHS_CLIP, 1, "*", NULL );
+            }
+            else {
+                ptl.y = rclRight.yBottom + (lHeight / 2) + 8;
+                GpiMove( hps, &ptl );
+                DrawDayIndicator( hps );
+            }
         }
         else {
-            if ( pdata->hptrNight )
+            if ( pdata->hptrNight ) {
+                ptl.y = max( 1, rclRight.yBottom + (lHeight / 2) - 10 );
                 WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrNight, DP_NORMAL | DP_MINI );
-            else
-                GpiCharStringPosAt( hps, &ptl, &rclRight, CHS_CLIP, 1, ")", NULL );
+            }
+            else {
+                ptl.y = rclRight.yBottom + (lHeight / 2) + 8;
+                GpiMove( hps, &ptl );
+                DrawNightIndicator( hps );
+            }
         }
     }
 
@@ -881,7 +970,7 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     if ( pdata->uzDesc[0] ) {
         pchText = bUnicode ? (PCH) pdata->uzDesc : (PCH) pdata->szDesc;
         cb = bUnicode ? UniStrlen(pdata->uzDesc) * 2 : strlen( pdata->szDesc );
-        ptl.x = rclLeft.xLeft + fm.lAveCharWidth;
+        ptl.x = rclLeft.xLeft + lTxtInset;
         ptl.y = rclLeft.yBottom + lTxtOffset;
         GpiCharStringPosAt( hps, &ptl, &rclLeft, CHS_CLIP, cb, pchText, NULL );
     }
@@ -890,7 +979,7 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     if (( pdata->flState & WTS_CVR_DATE ) && pdata->uzDate[0] ) {
         pchText = bUnicode ? (PCH) pdata->uzDate : (PCH) pdata->szDate;
         cb = bUnicode ? UniStrlen(pdata->uzDate) * 2 : strlen( pdata->szDate );
-        ptl.x = rclRight.xLeft + fm.lAveCharWidth;
+        ptl.x = rclRight.xLeft + lTxtInset;
         ptl.y = rclRight.yBottom + lTxtOffset;
         GpiCharStringPosAt( hps, &ptl, &rclDateTime, CHS_CLIP, cb, pchText, NULL );
     }
@@ -899,7 +988,7 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     else if ( pdata->uzTime[0] ) {
         pchText = bUnicode ? (PCH) pdata->uzTime : (PCH) pdata->szTime;
         cb = bUnicode ? UniStrlen(pdata->uzTime) * 2 : strlen( pdata->szTime );
-        ptl.x = rclRight.xLeft + fm.lAveCharWidth;
+        ptl.x = rclRight.xLeft + lTxtInset;
         ptl.y = rclRight.yBottom + lTxtOffset;
         GpiCharStringPosAt( hps, &ptl, &rclDateTime, CHS_CLIP, cb, pchText, NULL );
     }
@@ -1052,12 +1141,14 @@ void SetFormatStrings( PWTDDATA pdata )
             UniFreeMem( puzLOCI );
         } else UniStrcpy( pdata->uzTimeFmt, L"%X");
 
-    } else if ( pdata->flOptions & WTF_TIME_CUSTOM ) {
+    }
+    else if ( pdata->flOptions & WTF_TIME_CUSTOM ) {
         // if the flags indicate a custom string but no custom string is set,
         // initialize it to the default
         if ( ! pdata->uzTimeFmt[0] ) UniStrcpy( pdata->uzTimeFmt, L"%X");
 
-    } else if ( pdata->flOptions & WTF_TIME_SHORT ) {
+    }
+    else if ( pdata->flOptions & WTF_TIME_SHORT ) {
         // WTF_TIME_SHORT only applies to normal and system time mode (and
         // system will handle it separately at formatting time).
         // Unfortunately, there is no regular locale item for "default short
@@ -1106,12 +1197,15 @@ void SetFormatStrings( PWTDDATA pdata )
                 // like above, we can use %Ex instead of puzLOCI
                 UniStrcpy( pdata->uzDateFmt, L"%Ex");
             UniFreeMem( puzLOCI );
-        } else UniStrcpy( pdata->uzDateFmt, L"%x");
+        }
+        else UniStrcpy( pdata->uzDateFmt, L"%x");
 
-    } else if ( pdata->flOptions & WTF_DATE_CUSTOM ) {
+    }
+    else if ( pdata->flOptions & WTF_DATE_CUSTOM ) {
         if ( ! pdata->uzDateFmt[0] ) UniStrcpy( pdata->uzDateFmt, L"%x");
 
-    } else
+    }
+    else
         UniStrcpy( pdata->uzDateFmt, L"%x");
 
     // In the case of WTF_DATE_SYSTEM, uzDateFmt won't be used; we will be
@@ -1336,4 +1430,123 @@ struct tm
 };
 */
 
+
+/* ------------------------------------------------------------------------- *
+ * DrawSunriseIndicator                                                      *
+ * ------------------------------------------------------------------------- */
+void DrawSunriseIndicator( HPS hps )
+{
+    static BYTE abImage[] = { 0x00, 0x00,
+                              0x00, 0x00,
+                              0x00, 0x00,
+                              0x00, 0x00,
+                              0x02, 0x00,       // ......1. ........
+                              0x02, 0x00,       // ......1. ........
+                              0x42, 0x10,       // .1....1. ...1....
+                              0x2F, 0xA0,       // ..1.1111 1.1.....
+                              0x1F, 0xC0,       // ...11111 11......
+                              0x3F, 0xE0,       // ..111111 111.....
+                              0x3F, 0xE0,       // ..111111 111.....
+                              0xFF, 0xF8,       // 11111111 11111...
+                              0x00, 0x00,
+                              0x00, 0x00,
+                              0x00, 0x00,
+                              0x00, 0x00
+                             };
+    SIZEL sizl;
+
+    sizl.cx = 16;
+    sizl.cy = 16;
+    GpiImage( hps, 0L, &sizl, sizeof( abImage ), abImage );
+}
+
+
+/* ------------------------------------------------------------------------- *
+ * DrawSunsetIndicator                                                       *
+ * ------------------------------------------------------------------------- */
+void DrawSunsetIndicator( HPS hps )
+{
+    static BYTE abImage[] = { 0x00, 0x00,
+                              0x00, 0x00,
+                              0x00, 0x00,
+                              0x00, 0x00,
+                              0x00, 0x00,
+                              0x00, 0x00,
+                              0xFF, 0xF8,       // 11111111 11111...
+                              0x3F, 0xE0,       // ..111111 111.....
+                              0x3F, 0xE0,       // ..111111 111.....
+                              0x1F, 0xC0,       // ...11111 11......
+                              0x2F, 0xA0,       // ..1.1111 1.1.....
+                              0x42, 0x10,       // .1....1. ...1....
+                              0x02, 0x00,       // ......1. ........
+                              0x02, 0x00,       // ......1. ........
+                              0x00, 0x00,
+                              0x00, 0x00,
+                             };
+    SIZEL sizl;
+
+    sizl.cx = 16;
+    sizl.cy = 16;
+    GpiImage( hps, 0L, &sizl, sizeof( abImage ), abImage );
+}
+
+
+/* ------------------------------------------------------------------------- *
+ * DrawDayIndicator                                                          *
+ * ------------------------------------------------------------------------- */
+void DrawDayIndicator( HPS hps )
+{
+    static BYTE abImage[] = { 0x00, 0x00,
+                              0x00, 0x00,
+                              0x00, 0x00,
+                              0x01, 0x00,   // .......1 ........
+                              0x01, 0x00,   // .......1 ........
+                              0x13, 0x90,   // ...1..11 1..1....
+                              0x0F, 0xE0,   // ....1111 111.....
+                              0x0F, 0xE0,   // ....1111 111.....
+                              0x1F, 0xF0,   // .1111111 111111..
+                              0x0F, 0xE0,   // ....1111 111.....
+                              0x0F, 0xE0,   // ....1111 111.....
+                              0x13, 0x90,   // ...1..11 1..1....
+                              0x01, 0x00,   // .......1 ........
+                              0x01, 0x00,   // .......1 ........
+                              0x00, 0x00,
+                              0x00, 0x00
+                             };
+    SIZEL sizl;
+
+    sizl.cx = 16;
+    sizl.cy = 16;
+    GpiImage( hps, 0L, &sizl, sizeof( abImage ), abImage );
+}
+
+
+/* ------------------------------------------------------------------------- *
+ * DrawNightIndicator                                                        *
+ * ------------------------------------------------------------------------- */
+void DrawNightIndicator( HPS hps )
+{
+    static BYTE abImage[] = { 0x00, 0x00,
+                              0x00, 0x00,
+                              0x00, 0x00,
+                              0x03, 0x80,   // ......11 1.......
+                              0x20, 0xE0,   // ..1..... 111.....
+                              0x00, 0xF0,   // ........ 1111....
+                              0x00, 0x70,   // ........ .111....
+                              0x00, 0x78,   // ........ .1111...
+                              0x00, 0x78,   // ........ .1111...
+                              0x00, 0xF8,   // ........ 11111...
+                              0x31, 0xF0,   // ..11...1 1111....
+                              0x1F, 0xF0,   // ...11111 1111....
+                              0x0F, 0xE0,   // ....1111 111.....
+                              0x03, 0x80,   // ......11 1.......
+                              0x00, 0x00,
+                              0x00, 0x00
+                             };
+    SIZEL sizl;
+
+    sizl.cx = 16;
+    sizl.cy = 16;
+    GpiImage( hps, 0L, &sizl, sizeof( abImage ), abImage );
+}
 

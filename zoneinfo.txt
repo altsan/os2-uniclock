@@ -6,8 +6,11 @@ ZONEINFO.xx contains information about all known timezones and locations.
 in which the zone information is written (this scheme allows translated
 versions of the timezone database to be supported).
 
-This file is in OS/2 profile (a.k.a. INI) format. The file contents are
-structured as follows:
+(This file is designed to be used by multiple applications, hence it
+contains some features not used by Universal Clock.)
+
+The ZONEINFO file is a binary file in OS/2 profile (a.k.a. INI) format. The 
+file contents are structured as follows:
 
 1. Any number of application entries representing countries. These are named
    according to two-letter ISO country code (e.g. 'UK', 'US', 'CA', 'DE').
@@ -56,3 +59,10 @@ structured as follows:
 
 All strings are UTF-8 encoded.
 
+
+CREATING ZONEINFO.xx
+====================
+
+Creating the ZONEINFO database requires the contents of `tztools.zip` and also
+the latest version of the open source _tzdata_ database.  Refer to the file
+`readme.txt` in `tztools.zip` for detailed instructions.

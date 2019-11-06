@@ -52,6 +52,7 @@
 #define LOCDESC_MAXZ            128     // ...of a place name/description
 #define TIMESTR_MAXZ            64      // ...of a formatted time string
 #define DATESTR_MAXZ            128     // ...of a formatted date string
+#define SUNTIMES_MAXZ           180     // ...of a combined sunrise/sunset string
 #define TZSTR_MAXZ              64      // ...of a TZ variable string
 #define STRFT_MAXZ              64      // ...of a (Uni)strftime format string
 #define PRF_NTLDATA_MAXZ        32      // ...of a data item in PM_National
@@ -72,6 +73,7 @@
 #define WTD_SETCOORDINATES      ( WM_USER + 104 )
 #define WTD_SETOPTIONS          ( WM_USER + 105 )
 #define WTD_SETFORMATS          ( WM_USER + 106 )
+//#define WTD_SETALTFORMATS       ( WM_USER + 107 )
 #define WTD_SETWEATHER          ( WM_USER + 108 )
 #define WTD_SETSEPARATOR        ( WM_USER + 109 )
 #define WTD_QUERYCONFIG         ( WM_USER + 110 )
@@ -112,14 +114,14 @@
 #define WTF_PLACE_HAVECOORD     0x1000      // we have geographic coordinates for this clock
 #define WTF_PLACE_HAVECITY      0x2000      // * we have a city name for this clock
 #define WTF_PLACE_HAVEWEATHER   0x4000      // * we can determine current weather for this clock
-#define WTF_TIME_ALT            0x10000     // use locale's alternate time format (deprecate)
+#define WTF_TIME_ALT            0x10000     // use locale's alternate time format
 #define WTF_TIME_SYSTEM         0x20000     // use system default time format
 #define WTF_TIME_CUSTOM         0x40000     // use a customized time format
 #define WTF_TIME_SHORT          0x80000     // don't show seconds in time (ignored for custom & alt)
-#define WTF_ATIME_SYSTEM        0x200000    // use system default time format
-#define WTF_ATIME_CUSTOM        0x400000    // use a customized time format
-#define WTF_ATIME_SHORT         0x800000    // don't show seconds in time (ignored for custom & alt)
-#define WTF_DATE_ALT            0x1000000   // use locale's alternate date format (deprecate)
+//#define WTF_ATIME_SYSTEM        0x200000    // use system default time format
+//#define WTF_ATIME_CUSTOM        0x400000    // use a customized time format
+//#define WTF_ATIME_SHORT         0x800000    // don't show seconds in time (ignored for custom & alt)
+#define WTF_DATE_ALT            0x1000000   // use locale's alternate date format
 #define WTF_DATE_SYSTEM         0x2000000   // use system default date format
 #define WTF_DATE_CUSTOM         0x4000000   // use a customized date format
 #define WTF_LONGDATE_ALT        0x10000000  // * use locale's alternate long date format
@@ -147,13 +149,12 @@
 #define WTS_TOP_TZNAME          0x1         // * show TZ description text in top area
 #define WTS_TOP_TZVAR           0x2         // * show TZ variable in top area
 #define WTS_TOP_COORDINATES     0x4         // * show geographic coordinates in top area
-#define WTS_MID_ALTTIME         0x10        // * show user's alternate time in middle area
-#define WTS_BOT_ALTDATE         0x100       // * show user's alternate date in bottom area
-#define WTS_BOT_SUNTIME         0x200       // * show sunrise/sunset times in bottom area
+//#define WTS_MID_ALTTIME         0x10        // show user's alternate time in middle area
+//#define WTS_BOT_ALTDATE         0x100       // show user's alternate date in bottom area
+#define WTS_BOT_SUNTIME         0x200       // show sunrise/sunset times in bottom area
 #define WTS_CVR_DATE            0x1000      // show (normal) date in compact view right
 #define WTS_CVR_SUNTIME         0x2000      // show sunrise/sunset times in compact view right
 #define WTS_MIS_WEATHER         0x10000     // * display weather icon
-
 #define WTS_GUI_MENUPOPUP       0x2000000   // draw "active popup menu" border
 
 
@@ -192,8 +193,8 @@ typedef struct _WTDisplay_CData {
     UniChar       uzDesc[ LOCDESC_MAXZ ];   // timezone/place description
     UniChar       uzTimeFmt[ STRFT_MAXZ ];  // UniStrftime time format string
     UniChar       uzDateFmt[ STRFT_MAXZ ];  // UniStrftime date format string
-    UniChar       uzTimeFmt2[ STRFT_MAXZ ]; // UniStrftime alternate time format string
-    UniChar       uzDateFmt2[ STRFT_MAXZ ]; // UniStrftime alternate date format string
+//    UniChar       uzTimeFmt2[ STRFT_MAXZ ]; // UniStrftime alternate time format string
+//    UniChar       uzDateFmt2[ STRFT_MAXZ ]; // UniStrftime alternate date format string
     BYTE          bSep;                     // width of description area as % of total width
 } WTDCDATA, *PWTDCDATA;
 
@@ -213,21 +214,21 @@ typedef struct _WTDisplay_Data {
     CHAR          szDesc[ LOCDESC_MAXZ ];   // timezone/place description (codepage version)
     CHAR          szTime[ TIMESTR_MAXZ ];   // formatted time string      (codepage version)
     CHAR          szDate[ DATESTR_MAXZ ];   // formatted date string      (codepage version)
-    CHAR          szTime2[ TIMESTR_MAXZ ];  // formatted alt. time string (codepage version)
-    CHAR          szDate2[ DATESTR_MAXZ ];  // formatted alt. date string (codepage version)
+//    CHAR          szTime2[ TIMESTR_MAXZ ];  // formatted alt. time string (codepage version)
+//    CHAR          szDate2[ DATESTR_MAXZ ];  // formatted alt. date string (codepage version)
     CHAR          szSunR[ TIMESTR_MAXZ ];   // formatted sunrise time     (codepage version)
     CHAR          szSunS[ TIMESTR_MAXZ ];   // formatted sunset time      (codepage version)
     UniChar       uzDesc[ LOCDESC_MAXZ ];   // timezone/place description (Unicode version)
     UniChar       uzTime[ TIMESTR_MAXZ ];   // formatted time string      (Unicode version)
     UniChar       uzDate[ DATESTR_MAXZ ];   // formatted date string      (Unicode version)
-    UniChar       uzTime2[ TIMESTR_MAXZ ];  // formatted alt. time string (Unicode version)
-    UniChar       uzDate2[ DATESTR_MAXZ ];  // formatted alt. string      (Unicode version)
+//    UniChar       uzTime2[ TIMESTR_MAXZ ];  // formatted alt. time string (Unicode version)
+//    UniChar       uzDate2[ DATESTR_MAXZ ];  // formatted alt. string      (Unicode version)
     UniChar       uzSunR[ TIMESTR_MAXZ ];   // formatted sunrise time     (Unicode version)
     UniChar       uzSunS[ TIMESTR_MAXZ ];   // formatted sunset time      (Unicode version)
     UniChar       uzTimeFmt[ STRFT_MAXZ ];  // UniStrftime time format string
     UniChar       uzDateFmt[ STRFT_MAXZ ];  // UniStrftime date format string
-    UniChar       uzTimeFmt2[ STRFT_MAXZ ]; // UniStrftime alt. time format string
-    UniChar       uzDateFmt2[ STRFT_MAXZ ]; // UniStrftime alt. date format string
+//    UniChar       uzTimeFmt2[ STRFT_MAXZ ]; // UniStrftime alt. time format string
+//    UniChar       uzDateFmt2[ STRFT_MAXZ ]; // UniStrftime alt. date format string
     BOOL          fUnicode;                 // using Unicode font?
     FATTRS        faNormal;                 // attributes of normal display font
     FATTRS        faTime;                   // attributes of time display font

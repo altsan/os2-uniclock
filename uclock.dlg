@@ -112,32 +112,36 @@ BEGIN
                         PRESPARAMS PP_FOREGROUNDCOLORINDEX, SYSCLR_WINDOWTEXT
         GROUPBOX        "Time format", -1, 4, 52, 259, 43
         LTEXT           "Normal:", -1, 8, 74, 50, 8
-        LTEXT           "Alternate:", -1, 8, 59, 50, 8
         AUTOCHECKBOX    "No seconds display", IDD_TIMESHORT, 157, 75, 96, 8
-        CONTROL         "", IDD_TIMEFMT, 62, 53, 86, 31, WC_COMBOBOX,
+        CONTROL         "", IDD_TIMEFMT, 62, 45, 86, 39, WC_COMBOBOX,
                         CBS_DROPDOWNLIST | WS_GROUP | WS_TABSTOP |
                         WS_VISIBLE
         ENTRYFIELD      "", IDD_TIMESTR, 152, 75, 105, 8, ES_MARGIN | NOT
                         WS_VISIBLE
+/*
+        LTEXT           "Alternate:", -1, 8, 59, 50, 8
         AUTOCHECKBOX    "No seconds display", IDD_TIMESHORT2, 157, 60, 96, 8
         CONTROL         "", IDD_TIMEFMT2, 62, 38, 86, 31, WC_COMBOBOX,
                         CBS_DROPDOWNLIST | WS_GROUP | WS_TABSTOP |
                         WS_VISIBLE
         ENTRYFIELD      "", IDD_TIMESTR2, 152, 60, 105, 8, ES_MARGIN | NOT
                         WS_VISIBLE
+*/
         GROUPBOX        "Date format", -1, 4, 3, 260, 43
         LTEXT           "Normal:", -1, 8, 26, 50, 8
-        LTEXT           "Alternate:", -1, 8, 10, 50, 8
-        CONTROL         "", IDD_DATEFMT, 62, 4, 86, 31, WC_COMBOBOX,
+        CONTROL         "", IDD_DATEFMT, 62, -4, 86, 39, WC_COMBOBOX,
                         CBS_DROPDOWNLIST | WS_GROUP | WS_TABSTOP |
                         WS_VISIBLE
         ENTRYFIELD      "", IDD_DATESTR, 152, 26, 105, 8, ES_MARGIN | NOT
                         WS_VISIBLE
+/*
+        LTEXT           "Alternate:", -1, 8, 10, 50, 8
         CONTROL         "", IDD_DATEFMT2, 62, -11, 86, 31, WC_COMBOBOX,
                         CBS_DROPDOWNLIST | WS_GROUP | WS_TABSTOP |
                         WS_VISIBLE
         ENTRYFIELD      "", IDD_DATESTR2, 152, 11, 105, 8, ES_MARGIN | NOT
                         WS_VISIBLE
+*/
     END
 END
 

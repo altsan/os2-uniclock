@@ -27,7 +27,7 @@ END
 STRINGTABLE
 BEGIN
     IDS_CFG_PROGRAM                     "Program Configuration"
-    IDS_CFG_CLOCK                       "Clock %d - Properties"
+    IDS_CFG_CLOCK                       "Clock %u - Properties"
     IDS_CFG_COMMONPAGE                  "~Preferences"
     IDS_CFG_CLOCKPAGE                   "~Clock Setup"
     IDS_CFG_STYLEPAGE                   "~Appearance"
@@ -37,6 +37,7 @@ STRINGTABLE
 BEGIN
     IDS_FORMAT_SYSDEF                   "System default"
     IDS_FORMAT_LOCDEF                   "Locale default"
+    IDS_FORMAT_LOCALT                   "Locale alternative or default"
     IDS_FORMAT_CUSTOM                   "Custom string"
 END
 

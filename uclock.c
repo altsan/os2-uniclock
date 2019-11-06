@@ -179,43 +179,50 @@ typedef struct _Global_Data {
 // ----------------------------------------------------------------------------
 // FUNCTION PROTOTYPES
 
+// application logic
 MRESULT EXPENTRY MainWndProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 void             ResizeClocks( HWND hwnd );
 MRESULT          PaintClient( HWND hwnd );
 MRESULT EXPENTRY AboutDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 BOOL             WindowSetup( HWND hwnd, HWND hwndClient );
-void             CentreWindow( HWND hwnd );
-void             ErrorMessage( HWND hwnd, USHORT usID );
 void             ToggleTitleBar( PUCLGLOBAL pGlobal, HWND hwndFrame, BOOL fOn );
-void             OpenProfile( PUCLGLOBAL pGlobal );
-BOOL             LoadIniData( PVOID pData, USHORT cb, HINI hIni, PSZ pszApp, PSZ pszKey );
 void             SaveSettings( HWND hwnd );
 void             UpdateTime( HWND hwnd );
 BOOL             AddNewClock( HWND hwnd );
 void             DeleteClock( HWND hwnd, PUCLGLOBAL pGlobal, USHORT usClock );
+
+// application configuration
 void             ConfigNotebook( HWND hwnd );
 MRESULT EXPENTRY CfgDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 BOOL             CfgPopulateNotebook( HWND hwnd, PUCFGDATA pConfig );
 MRESULT EXPENTRY CfgCommonPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
-MRESULT EXPENTRY CfgClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
-MRESULT EXPENTRY CfgPresPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
-MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
-void             TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry, PTZPROP pProps );
-void             CfgPopulateClockList( HWND hwnd, PUCFGDATA pConfig );
 void             CfgSettingsCommon( HWND hwnd, PUCFGDATA pConfig );
+void             CfgPopulateClockList( HWND hwnd, PUCFGDATA pConfig );
+
+// clock panel configuration
 BOOL             ClockNotebook( HWND hwnd, USHORT usNumber );
 MRESULT EXPENTRY ClkDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 BOOL             ClkPopulateNotebook( HWND hwnd, PUCLKPROP pConfig );
+MRESULT EXPENTRY CfgClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+MRESULT EXPENTRY CfgPresPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 MRESULT EXPENTRY ClkStylePageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 BOOL             ClkSettingsClock( HWND hwnd, PUCLKPROP pConfig );
 BOOL             ClkSettingsStyle( HWND hwnd, PUCLKPROP pConfig );
 MRESULT EXPENTRY ClrDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+void             TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry, PTZPROP pProps );
 BOOL             SelectFont( HWND hwnd, PSZ pszFace, USHORT cbBuf );
 void             SelectColour( HWND hwnd, HWND hwndCtl );
 void             SelectTimeZone( HWND hwnd, PUCLKPROP pConfig );
 BOOL             ParseTZCoordinates( PSZ pszCoord, PGEOCOORD pGC );
 void             UnParseTZCoordinates( PSZ pszCoord, GEOCOORD coordinates );
+
+// utils
+void             CentreWindow( HWND hwnd );
+void             ErrorMessage( HWND hwnd, USHORT usID );
+void             OpenProfile( PUCLGLOBAL pGlobal );
+BOOL             LoadIniData( PVOID pData, USHORT cb, HINI hIni, PSZ pszApp, PSZ pszKey );
 
 
 /* ------------------------------------------------------------------------- *
@@ -570,7 +577,8 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
         pGlobal->clocks[0] = WinCreateWindow( hwndClient, WT_DISPLAY, "", 0L,
                                               0, 0, 0, 0, hwndClient, HWND_TOP, FIRST_CLOCK, NULL, NULL );
         WinSendMsg( pGlobal->clocks[0], WTD_SETTIMEZONE, MPFROMP("UTC0"), MPFROMP(uzRes));
-        WinSendMsg( pGlobal->clocks[0], WTD_SETOPTIONS,  MPFROMLONG( WTF_BORDER_FULL ), MPVOID );
+        WinSendMsg( pGlobal->clocks[0], WTD_SETOPTIONS, MPFROMLONG( WTF_BORDER_FULL ), MPVOID );
+        WinSendMsg( pGlobal->clocks[0], WTD_SETINDICATORS, MPFROMP( pGlobal->hptrDay ), MPFROMP( pGlobal->hptrNight ));
         WinSetPresParam( pGlobal->clocks[0], PP_SEPARATORCOLOR, sizeof(ULONG), &clrS );
         WinSetPresParam( pGlobal->clocks[0], PP_BORDERCOLOR, sizeof(ULONG), &clrB );
         WinSetPresParam( pGlobal->clocks[0], PP_FONTNAMESIZE, 11, "9.WarpSans");
@@ -583,7 +591,8 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
         pGlobal->clocks[1] = WinCreateWindow( hwndClient, WT_DISPLAY, "", 0L,
                                               0, 0, 0, 0, hwndClient, HWND_TOP, FIRST_CLOCK+1, NULL, NULL );
         WinSendMsg( pGlobal->clocks[1], WTD_SETTIMEZONE, MPFROMP(pGlobal->szTZ), MPFROMP(uzRes));
-        WinSendMsg( pGlobal->clocks[1], WTD_SETOPTIONS,  MPFROMLONG( WTF_BORDER_FULL & ~WTF_BORDER_BOTTOM ), MPVOID );
+        WinSendMsg( pGlobal->clocks[1], WTD_SETOPTIONS, MPFROMLONG( WTF_BORDER_FULL & ~WTF_BORDER_BOTTOM ), MPVOID );
+        WinSendMsg( pGlobal->clocks[1], WTD_SETINDICATORS, MPFROMP( pGlobal->hptrDay ), MPFROMP( pGlobal->hptrNight ));
         WinSetPresParam( pGlobal->clocks[1], PP_SEPARATORCOLOR, sizeof(ULONG), &clrS );
         WinSetPresParam( pGlobal->clocks[1], PP_BORDERCOLOR, sizeof(ULONG), &clrB );
         WinSetPresParam( pGlobal->clocks[1], PP_FONTNAMESIZE, 11, "9.WarpSans");
@@ -1894,6 +1903,7 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
             szCoord[ ISO6709_MAXZ ],
             szSysDef[ SZRES_MAXZ ],
             szLocDef[ SZRES_MAXZ ],
+            szLocAlt[ SZRES_MAXZ ],
             szCustom[ SZRES_MAXZ ];
 
     switch ( msg ) {
@@ -1924,20 +1934,24 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
                 sprintf( szSysDef, "System default");
             if ( ! WinLoadString( pConfig->hab, 0, IDS_FORMAT_LOCDEF, SZRES_MAXZ-1, szLocDef ))
                 sprintf( szLocDef, "Locale default");
+            if ( ! WinLoadString( pConfig->hab, 0, IDS_FORMAT_LOCALT, SZRES_MAXZ-1, szLocAlt ))
+                sprintf( szLocAlt, "Locale alternative or default");
             if ( ! WinLoadString( pConfig->hab, 0, IDS_FORMAT_CUSTOM, SZRES_MAXZ-1, szCustom ))
                 sprintf( szCustom, "Custom string");
             WinSendDlgItemMsg( hwnd, IDD_TIMEFMT,  LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szSysDef) );
             WinSendDlgItemMsg( hwnd, IDD_TIMEFMT,  LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLocDef) );
+            WinSendDlgItemMsg( hwnd, IDD_TIMEFMT,  LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLocAlt) );
             WinSendDlgItemMsg( hwnd, IDD_TIMEFMT,  LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szCustom) );
-            WinSendDlgItemMsg( hwnd, IDD_TIMEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szSysDef) );
-            WinSendDlgItemMsg( hwnd, IDD_TIMEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLocDef) );
-            WinSendDlgItemMsg( hwnd, IDD_TIMEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szCustom) );
+//            WinSendDlgItemMsg( hwnd, IDD_TIMEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szSysDef) );
+//            WinSendDlgItemMsg( hwnd, IDD_TIMEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLocDef) );
+//            WinSendDlgItemMsg( hwnd, IDD_TIMEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szCustom) );
             WinSendDlgItemMsg( hwnd, IDD_DATEFMT,  LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szSysDef) );
             WinSendDlgItemMsg( hwnd, IDD_DATEFMT,  LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLocDef) );
+            WinSendDlgItemMsg( hwnd, IDD_DATEFMT,  LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLocAlt) );
             WinSendDlgItemMsg( hwnd, IDD_DATEFMT,  LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szCustom) );
-            WinSendDlgItemMsg( hwnd, IDD_DATEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szSysDef) );
-            WinSendDlgItemMsg( hwnd, IDD_DATEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLocDef) );
-            WinSendDlgItemMsg( hwnd, IDD_DATEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szCustom) );
+//            WinSendDlgItemMsg( hwnd, IDD_DATEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szSysDef) );
+//            WinSendDlgItemMsg( hwnd, IDD_DATEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLocDef) );
+//            WinSendDlgItemMsg( hwnd, IDD_DATEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szCustom) );
 
             // Set the current values
             WinSetDlgItemText( hwnd, IDD_TZDISPLAY, pConfig->clockData.szTZ );
@@ -1970,15 +1984,19 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
 
             if ( pConfig->clockData.flOptions & WTF_TIME_SYSTEM )
                 sIdx = 0;
-            else if ( pConfig->clockData.flOptions & WTF_TIME_CUSTOM )
+            else if ( pConfig->clockData.flOptions & WTF_TIME_ALT )
                 sIdx = 2;
-            else sIdx = 1;
+            else if ( pConfig->clockData.flOptions & WTF_TIME_CUSTOM )
+                sIdx = 3;
+            else
+                sIdx = 1;
             WinSendDlgItemMsg( hwnd, IDD_TIMEFMT, LM_SELECTITEM,
                                MPFROMSHORT(sIdx), MPFROMSHORT(TRUE) );
 
             if ( sIdx < 2 && pConfig->clockData.flOptions & WTF_TIME_SHORT )
                 WinSendDlgItemMsg( hwnd, IDD_TIMESHORT, BM_SETCHECK, MPFROMSHORT(1), MPVOID );
 
+/*
             // time format controls (alternate)
             if ( pConfig->clockData.flOptions & WTF_ATIME_SYSTEM )
                 sIdx = 0;
@@ -1987,9 +2005,9 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
             else sIdx = 1;
             WinSendDlgItemMsg( hwnd, IDD_TIMEFMT2, LM_SELECTITEM,
                                MPFROMSHORT(sIdx), MPFROMSHORT(TRUE) );
-
             if ( sIdx < 2 && pConfig->clockData.flOptions & WTF_ATIME_SHORT )
                 WinSendDlgItemMsg( hwnd, IDD_TIMESHORT2, BM_SETCHECK, MPFROMSHORT(1), MPVOID );
+*/
 
             // date format controls (primary)
             if ( pConfig->uconv &&
@@ -1999,12 +2017,15 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
 
             if ( pConfig->clockData.flOptions & WTF_DATE_SYSTEM )
                 sIdx = 0;
-            else if ( pConfig->clockData.flOptions & WTF_DATE_CUSTOM )
+            else if ( pConfig->clockData.flOptions & WTF_DATE_ALT )
                 sIdx = 2;
-            else sIdx = 1;
+            else if ( pConfig->clockData.flOptions & WTF_DATE_CUSTOM )
+                sIdx = 3;
+            else
+                sIdx = 1;
             WinSendDlgItemMsg( hwnd, IDD_DATEFMT, LM_SELECTITEM,
                                MPFROMSHORT(sIdx), MPFROMSHORT(TRUE) );
-
+/*
             // date format controls (secondary)
             if ( pConfig->clockData.flOptions & WTF_LONGDATE_SYSTEM )
                 sIdx = 0;
@@ -2013,7 +2034,7 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
             else sIdx = 1;
             WinSendDlgItemMsg( hwnd, IDD_DATEFMT2, LM_SELECTITEM,
                                MPFROMSHORT(sIdx), MPFROMSHORT(TRUE) );
-
+*/
             return (MRESULT) FALSE;
 
 
@@ -2047,10 +2068,10 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
                         hwndLB = (HWND) mp2;
                         sIdx = (SHORT) WinSendMsg( hwndLB, LM_QUERYSELECTION, MPFROMSHORT(LIT_FIRST), 0 );
                         WinShowWindow( WinWindowFromID(hwnd, IDD_TIMESHORT), (sIdx < 2)? TRUE: FALSE );
-                        WinShowWindow( WinWindowFromID(hwnd, IDD_TIMESTR), (sIdx == 2)? TRUE: FALSE );
+                        WinShowWindow( WinWindowFromID(hwnd, IDD_TIMESTR), (sIdx == 3)? TRUE: FALSE );
                     }
                     break;
-
+/*
                 case IDD_TIMEFMT2:
                     if ( SHORT2FROMMP(mp1) == LN_SELECT ) {
                         hwndLB = (HWND) mp2;
@@ -2059,15 +2080,15 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
                         WinShowWindow( WinWindowFromID(hwnd, IDD_TIMESTR2), (sIdx == 2)? TRUE: FALSE );
                     }
                     break;
-
+*/
                 case IDD_DATEFMT:
                     if ( SHORT2FROMMP(mp1) == LN_SELECT ) {
                         hwndLB = (HWND) mp2;
                         sIdx = (SHORT) WinSendMsg( hwndLB, LM_QUERYSELECTION, MPFROMSHORT(LIT_FIRST), 0 );
-                        WinShowWindow( WinWindowFromID(hwnd, IDD_DATESTR), (sIdx == 2)? TRUE: FALSE );
+                        WinShowWindow( WinWindowFromID(hwnd, IDD_DATESTR), (sIdx == 3)? TRUE: FALSE );
                     }
                     break;
-
+/*
                 case IDD_DATEFMT2:
                     if ( SHORT2FROMMP(mp1) == LN_SELECT ) {
                         hwndLB = (HWND) mp2;
@@ -2075,7 +2096,7 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
                         WinShowWindow( WinWindowFromID(hwnd, IDD_DATESTR2), (sIdx == 2)? TRUE: FALSE );
                     }
                     break;
-
+*/
                 case IDD_USECOORDINATES:
                     WinEnableControl( hwnd, IDD_COORDINATES,
                                       (BOOL)WinQueryButtonCheckstate( hwnd, IDD_USECOORDINATES ));
@@ -2231,8 +2252,9 @@ BOOL ClkSettingsClock( HWND hwnd, PUCLKPROP pConfig )
                                       MPFROMSHORT(LIT_FIRST), 0 );
     switch ( sIdx ) {
         case 0:  settings.flOptions |= WTF_TIME_SYSTEM; break;
-//        case 2:  settings.flOptions |= WTF_TIME_ALT;    break;
-        case 2:  settings.flOptions |= WTF_TIME_CUSTOM; break;
+        // case 1 is the locale default, which uses bitmask 0
+        case 2:  settings.flOptions |= WTF_TIME_ALT;    break;
+        case 3:  settings.flOptions |= WTF_TIME_CUSTOM; break;
         default: break;
     }
     if ( sIdx < 2 && WinQueryButtonCheckstate( hwnd, IDD_TIMESHORT ))
@@ -2242,8 +2264,9 @@ BOOL ClkSettingsClock( HWND hwnd, PUCLKPROP pConfig )
                                       MPFROMSHORT(LIT_FIRST), 0 );
     switch ( sIdx ) {
         case 0:  settings.flOptions |= WTF_DATE_SYSTEM; break;
-//        case 2:  settings.flOptions |= WTF_DATE_ALT;    break;
-        case 2:  settings.flOptions |= WTF_DATE_CUSTOM; break;
+        // case 1 is the locale default, which uses bitmask 0
+        case 2:  settings.flOptions |= WTF_DATE_ALT;    break;
+        case 3:  settings.flOptions |= WTF_DATE_CUSTOM; break;
         default: break;
     }
 
@@ -2460,6 +2483,7 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             WinSetDlgItemText( hwnd, IDD_TZVALUE, pProps->achTZ );
 
             // Ditto the coordinates
+            // TODO only if WTF_PLACE_HAVECOORD is 0 (otherwise do above)
             WinSendDlgItemMsg( hwnd, IDD_TZLAT_DEGS, SPBM_SETCURRENTVALUE,
                                MPFROMLONG( (LONG)(pProps->coordinates.sLatitude) ), 0L );
             WinSendDlgItemMsg( hwnd, IDD_TZLAT_MINS, SPBM_SETCURRENTVALUE,
