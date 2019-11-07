@@ -28,8 +28,10 @@ BOOL FormatDate( HWND hwnd, PWTDDATA pdata, struct tm *time );
 void SetSunTimes( HWND hwnd, PWTDDATA pdata );
 void DrawSunriseIndicator( HPS hps );
 void DrawSunsetIndicator( HPS hps );
-void DrawDayIndicator( HPS hps );
-void DrawNightIndicator( HPS hps );
+void DrawDayIndicatorSmall( HPS hps );
+void DrawDayIndicatorLarge( HPS hps );
+void DrawNightIndicatorSmall( HPS hps );
+void DrawNightIndicatorLarge( HPS hps );
 
 
 /* ------------------------------------------------------------------------- *
@@ -769,6 +771,37 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
         }
     }
 
+    // draw the day/night indicator, if applicable
+    if ( pdata->flOptions & WTF_PLACE_HAVECOORD ) {
+        ptl.x = rclMiddle.xRight - 40;
+        if ( IS_DAYTIME( pdata->timeval, pdata->tm_sunrise, pdata->tm_sunset )) {
+            if ( pdata->hptrDay ) {
+                ptl.y = rclMiddle.yBottom + (lTmHeight / 2) - 20;
+                WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrDay, DP_NORMAL );
+                //rclTime.xRight -= ( 40 - lTmInset );
+            }
+            else {
+                ptl.y = rclMiddle.yBottom + (lTmHeight / 2) + 16;
+                GpiMove( hps, &ptl );
+                DrawDayIndicatorLarge( hps );
+                //rclTime.xRight -= ( 32 - lTmInset );
+            }
+        }
+        else {
+            if ( pdata->hptrNight ) {
+                ptl.y = rclMiddle.yBottom + (lTmHeight / 2) - 20;
+                WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrNight, DP_NORMAL );
+                //rclTime.xRight -= ( 40 - lTmInset );
+            }
+            else {
+                ptl.y = rclMiddle.yBottom + (lTmHeight / 2) + 16;
+                GpiMove( hps, &ptl );
+                DrawNightIndicatorLarge( hps );
+                //rclTime.xRight -= ( 32 - lTmInset );
+            }
+        }
+    }
+
     // draw the time string
     if ( pdata->uzTime[0] ) {
         if ( fbType == FTYPE_BITMAP )
@@ -783,33 +816,6 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
         ptl.y = rclTime.yBottom + (lTmHeight / 2);
         GpiSetTextAlignment( hps, TA_CENTER, TA_HALF );
         GpiCharStringPosAt( hps, &ptl, &rclTime, CHS_CLIP, cb, pchText, NULL );
-    }
-
-    // draw the day/night indicator, if applicable
-    if ( pdata->flOptions & WTF_PLACE_HAVECOORD ) {
-        ptl.x = rclMiddle.xRight - 44;
-        if ( IS_DAYTIME( pdata->timeval, pdata->tm_sunrise, pdata->tm_sunset )) {
-            if ( pdata->hptrDay ) {
-                ptl.y = rclMiddle.yBottom + (lTmHeight / 2) - 20;
-                WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrDay, DP_NORMAL );
-            }
-            else {
-                ptl.y = rclMiddle.yBottom + (lTmHeight / 2) + 8;
-                GpiMove( hps, &ptl );
-                DrawDayIndicator( hps );
-            }
-        }
-        else {
-            if ( pdata->hptrNight ) {
-                ptl.y = rclMiddle.yBottom + (lTmHeight / 2) - 20;
-                WinDrawPointer( hps, ptl.x, ptl.y, pdata->hptrNight, DP_NORMAL );
-            }
-            else {
-                ptl.y = rclMiddle.yBottom + (lTmHeight / 2) + 8;
-                GpiMove( hps, &ptl );
-                DrawNightIndicator( hps );
-            }
-        }
     }
 
     // draw the separator line for the top region
@@ -950,7 +956,7 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
             else {
                 ptl.y = rclRight.yBottom + (lHeight / 2) + 8;
                 GpiMove( hps, &ptl );
-                DrawDayIndicator( hps );
+                DrawDayIndicatorSmall( hps );
             }
         }
         else {
@@ -961,7 +967,7 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
             else {
                 ptl.y = rclRight.yBottom + (lHeight / 2) + 8;
                 GpiMove( hps, &ptl );
-                DrawNightIndicator( hps );
+                DrawNightIndicatorSmall( hps );
             }
         }
     }
@@ -1492,9 +1498,9 @@ void DrawSunsetIndicator( HPS hps )
 
 
 /* ------------------------------------------------------------------------- *
- * DrawDayIndicator                                                          *
+ * DrawDayIndicatorSmall                                                     *
  * ------------------------------------------------------------------------- */
-void DrawDayIndicator( HPS hps )
+void DrawDayIndicatorSmall( HPS hps )
 {
     static BYTE abImage[] = { 0x00, 0x00,
                               0x00, 0x00,
@@ -1522,9 +1528,59 @@ void DrawDayIndicator( HPS hps )
 
 
 /* ------------------------------------------------------------------------- *
- * DrawNightIndicator                                                        *
+ * DrawDayIndicatorLarge                                                     *
  * ------------------------------------------------------------------------- */
-void DrawNightIndicator( HPS hps )
+void DrawDayIndicatorLarge( HPS hps )
+{
+    static BYTE abImage[] = { 0x00, 0x00, 0x00, 0x00,
+                              0x00, 0x00, 0x00, 0x00,
+                              0x00, 0x00, 0x00, 0x00,
+                              0x00, 0x00, 0x00, 0x00,
+                              0x00, 0x00, 0x00, 0x00,
+                              0x00, 0x01, 0x00, 0x00,   // ........ .......1 ........ ........
+                              0x00, 0x01, 0x00, 0x00,   // ........ .......1 ........ ........
+                              0x00, 0x01, 0x00, 0x00,   // ........ .......1 ........ ........
+                              0x00, 0x01, 0x00, 0x00,   // ........ .......1 ........ ........
+                              0x02, 0x01, 0x00, 0x80,   // ......1. .......1 ........ 1.......
+                              0x01, 0x07, 0xC1, 0x00,   // .......1 .....111 11.....1 ........
+                              0x00, 0x9F, 0xF2, 0x00,   // ........ 1..11111 1111..1. ........
+                              0x00, 0x3F, 0xF8, 0x00,   // ........ ..111111 11111... ........
+                              0x00, 0x7F, 0xFC, 0x00,   // ........ .1111111 111111.. ........
+                              0x00, 0xFF, 0xFE, 0x00,   // ........ 11111111 1111111. ........
+                              0x00, 0xFF, 0xFE, 0x00,   // ........ 11111111 1111111. ........
+                              0x01, 0xFF, 0xFF, 0x00,   // .......1 11111111 11111111 ........
+                              0x01, 0xFF, 0xFF, 0x00,   // .......1 11111111 11111111 ........
+                              0x3F, 0xFF, 0xFF, 0xF8,   // ..111111 11111111 11111111 11111...
+                              0x01, 0xFF, 0xFF, 0x00,   // .......1 11111111 11111111 ........
+                              0x01, 0xFF, 0xFF, 0x00,   // .......1 11111111 11111111 ........
+                              0x00, 0xFF, 0xFE, 0x00,   // ........ 11111111 1111111. ........
+                              0x00, 0xFF, 0xFE, 0x00,   // ........ 11111111 1111111. ........
+                              0x00, 0x7F, 0xFC, 0x00,   // ........ .1111111 111111.. ........
+                              0x00, 0x3F, 0xF8, 0x00,   // ........ ..111111 11111... ........
+                              0x00, 0x9F, 0xF2, 0x00,   // ........ 1..11111 1111..1. ........
+                              0x01, 0x07, 0xC1, 0x00,   // .......1 .....111 11.....1 ........
+                              0x02, 0x01, 0x00, 0x80,   // ......1. .......1 ........ 1.......
+                              0x00, 0x01, 0x00, 0x00,   // ........ .......1 ........ ........
+                              0x00, 0x01, 0x00, 0x00,   // ........ .......1 ........ ........
+                              0x00, 0x01, 0x00, 0x00,   // ........ .......1 ........ ........
+                              0x00, 0x01, 0x00, 0x00    // ........ .......1 ........ ........
+                             };
+    SIZEL sizl;
+    LONG  lFG;
+
+    sizl.cx = 32;
+    sizl.cy = 32;
+    lFG = GpiQueryColor( hps );
+    GpiSetColor( hps, lFG & ~0x666666 );
+    GpiImage( hps, 0L, &sizl, sizeof( abImage ), abImage );
+    GpiSetColor( hps, lFG );
+}
+
+
+/* ------------------------------------------------------------------------- *
+ * DrawNightIndicatorSmall                                                   *
+ * ------------------------------------------------------------------------- */
+void DrawNightIndicatorSmall( HPS hps )
 {
     static BYTE abImage[] = { 0x00, 0x00,
                               0x00, 0x00,
@@ -1548,5 +1604,55 @@ void DrawNightIndicator( HPS hps )
     sizl.cx = 16;
     sizl.cy = 16;
     GpiImage( hps, 0L, &sizl, sizeof( abImage ), abImage );
+}
+
+
+/* ------------------------------------------------------------------------- *
+ * DrawNightIndicatorLarge                                                   *
+ * ------------------------------------------------------------------------- */
+void DrawNightIndicatorLarge( HPS hps )
+{
+    static BYTE abImage[] = { 0x00, 0x00, 0x00, 0x00,
+                              0x00, 0x00, 0x00, 0x00,
+                              0x00, 0x00, 0x00, 0x00,
+                              0x00, 0x00, 0x00, 0x00,
+                              0x00, 0x00, 0x00, 0x00,
+                              0x00, 0x00, 0x00, 0x40,   // ........ ........ ........ .1......
+                              0x00, 0x0F, 0x80, 0x00,   // ........ ....1111 1....... ........
+                              0x02, 0x03, 0xF0, 0x00,   // ......1. ......11 1111.... ........
+                              0x05, 0x01, 0xFC, 0x00,   // .....1.1 .......1 111111.. ........
+                              0x02, 0x00, 0xFE, 0x00,   // ......1. ........ 1111111. ........
+                              0x00, 0x00, 0x7F, 0x00,   // ........ ........ .1111111 ........
+                              0x00, 0x00, 0x3F, 0x00,   // ........ ........ ..111111 ........
+                              0x00, 0x00, 0x3F, 0x80,   // ........ ........ ..111111 1.......
+                              0x00, 0x00, 0x1F, 0x80,   // ........ ........ ...11111 1.......
+                              0x00, 0x00, 0x1F, 0xC0,   // ........ ........ ...11111 11......
+                              0x00, 0x00, 0x1F, 0xC0,   // ........ ........ ...11111 11......
+                              0x00, 0x00, 0x1F, 0xC0,   // ........ ........ ...11111 11......
+                              0x00, 0x00, 0x1F, 0xC0,   // ........ ........ ...11111 11......
+                              0x00, 0x00, 0x3F, 0xC0,   // ........ ........ ..111111 11......
+                              0x08, 0x00, 0x3F, 0xC0,   // ....1... ........ ..111111 11......
+                              0x0C, 0x00, 0x7F, 0x80,   // ....11.. ........ .1111111 1.......
+                              0x07, 0x01, 0xFF, 0x80,   // .....111 .......1 11111111 1.......
+                              0x07, 0xFF, 0xFF, 0x00,   // .....111 11111111 11111111 ........
+                              0x03, 0xFF, 0xFF, 0x00,   // ......11 11111111 11111111 ........
+                              0x01, 0xFF, 0xFE, 0x00,   // .......1 11111111 1111111. ........
+                              0x00, 0xFF, 0xFC, 0x00,   // ........ 11111111 111111.. ........
+                              0x00, 0x3F, 0xF0, 0x00,   // ........ ..111111 1111.... ........
+                              0x00, 0x0F, 0xC0, 0x10,   // ........ ....1111 11...... ...1....
+                              0x00, 0x00, 0x00, 0x00,
+                              0x00, 0x00, 0x00, 0x00,
+                              0x00, 0x00, 0x00, 0x00,
+                              0x00, 0x00, 0x00, 0x00
+                            };
+    SIZEL sizl;
+    LONG  lFG;
+
+    sizl.cx = 32;
+    sizl.cy = 32;
+    lFG = GpiQueryColor( hps );
+    GpiSetColor( hps, lFG & ~0x666666 );
+    GpiImage( hps, 0L, &sizl, sizeof( abImage ), abImage );
+    GpiSetColor( hps, lFG );
 }
 

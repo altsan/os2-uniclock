@@ -571,14 +571,11 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
                ( UniStrToUcs( uconv, uzRes, szRes, SZRES_MAXZ ) == ULS_SUCCESS )))
             UniStrcpy( uzRes, L"UTC");
 
-        WinSendMsg( pGlobal->clocks[0], WTD_SETINDICATORS,
-                    MPFROMP( pGlobal->hptrDay ), MPFROMP( pGlobal->hptrNight ));
-
         pGlobal->clocks[0] = WinCreateWindow( hwndClient, WT_DISPLAY, "", 0L,
                                               0, 0, 0, 0, hwndClient, HWND_TOP, FIRST_CLOCK, NULL, NULL );
         WinSendMsg( pGlobal->clocks[0], WTD_SETTIMEZONE, MPFROMP("UTC0"), MPFROMP(uzRes));
         WinSendMsg( pGlobal->clocks[0], WTD_SETOPTIONS, MPFROMLONG( WTF_BORDER_FULL ), MPVOID );
-        WinSendMsg( pGlobal->clocks[0], WTD_SETINDICATORS, MPFROMP( pGlobal->hptrDay ), MPFROMP( pGlobal->hptrNight ));
+//        WinSendMsg( pGlobal->clocks[0], WTD_SETINDICATORS, MPFROMP( pGlobal->hptrDay ), MPFROMP( pGlobal->hptrNight ));
         WinSetPresParam( pGlobal->clocks[0], PP_SEPARATORCOLOR, sizeof(ULONG), &clrS );
         WinSetPresParam( pGlobal->clocks[0], PP_BORDERCOLOR, sizeof(ULONG), &clrB );
         WinSetPresParam( pGlobal->clocks[0], PP_FONTNAMESIZE, 11, "9.WarpSans");
@@ -592,7 +589,7 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
                                               0, 0, 0, 0, hwndClient, HWND_TOP, FIRST_CLOCK+1, NULL, NULL );
         WinSendMsg( pGlobal->clocks[1], WTD_SETTIMEZONE, MPFROMP(pGlobal->szTZ), MPFROMP(uzRes));
         WinSendMsg( pGlobal->clocks[1], WTD_SETOPTIONS, MPFROMLONG( WTF_BORDER_FULL & ~WTF_BORDER_BOTTOM ), MPVOID );
-        WinSendMsg( pGlobal->clocks[1], WTD_SETINDICATORS, MPFROMP( pGlobal->hptrDay ), MPFROMP( pGlobal->hptrNight ));
+//        WinSendMsg( pGlobal->clocks[1], WTD_SETINDICATORS, MPFROMP( pGlobal->hptrDay ), MPFROMP( pGlobal->hptrNight ));
         WinSetPresParam( pGlobal->clocks[1], PP_SEPARATORCOLOR, sizeof(ULONG), &clrS );
         WinSetPresParam( pGlobal->clocks[1], PP_BORDERCOLOR, sizeof(ULONG), &clrB );
         WinSetPresParam( pGlobal->clocks[1], PP_FONTNAMESIZE, 11, "9.WarpSans");
@@ -657,8 +654,8 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
                                               0, 0, 0, 0, hwndClient, HWND_TOP, FIRST_CLOCK+i, &wtInit, NULL );
         if ( ! pGlobal->clocks[i] ) continue;
 
-        WinSendMsg( pGlobal->clocks[i], WTD_SETINDICATORS,
-                    MPFROMP( pGlobal->hptrDay ), MPFROMP( pGlobal->hptrNight ));
+//        WinSendMsg( pGlobal->clocks[i], WTD_SETINDICATORS,
+//                    MPFROMP( pGlobal->hptrDay ), MPFROMP( pGlobal->hptrNight ));
 
         if ( fLook ) {
             if ( savedPP.clrFG != NO_COLOUR_PP )
@@ -1101,8 +1098,8 @@ BOOL AddNewClock( HWND hwnd )
     flOptions = WTF_BORDER_FULL;
     if ( usNew ) flOptions &= ~WTF_BORDER_BOTTOM;
 
-    WinSendMsg( hwndClock, WTD_SETINDICATORS,
-                MPFROMP(pGlobal->hptrDay), MPFROMP(pGlobal->hptrNight));
+//    WinSendMsg( hwndClock, WTD_SETINDICATORS,
+//                MPFROMP(pGlobal->hptrDay), MPFROMP(pGlobal->hptrNight));
 
     // set default properties
     WinSendMsg( hwndClock, WTD_SETTIMEZONE, MPFROMP(pGlobal->szTZ), MPFROMP(uzRes));
