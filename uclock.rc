@@ -7,10 +7,11 @@ ICON ICON_DOWN      "down.ico"
 ICON ICON_DAY       "day.ico"
 ICON ICON_NIGHT     "night.ico"
 
+// String resources are max 255 characters unless otherwise noted.
 
 STRINGTABLE
 BEGIN
-    IDS_LANG                            "EN"        // change for each translation
+    IDS_LANG                            "EN"        // change for each translation (2 letters)
     IDS_BTN_OK                          "OK"
     IDS_BTN_CANCEL                      "Cancel"
     IDS_BTN_HELP                        "Help"
@@ -37,7 +38,7 @@ STRINGTABLE
 BEGIN
     IDS_FORMAT_SYSDEF                   "System default"
     IDS_FORMAT_LOCDEF                   "Locale default"
-    IDS_FORMAT_LOCALT                   "Locale alternative or default"
+    IDS_FORMAT_LOCALT                   "Locale alternative"
     IDS_FORMAT_CUSTOM                   "Custom string"
 END
 
@@ -49,10 +50,12 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_ERROR_TITLE                     "Error"
+    IDS_ERROR_TITLE                     "Error"                     // max. 20
     IDS_ERROR_CLKDATA                   "Failed to get clock data."
     IDS_ERROR_NOTEBOOK                  "Error populating notebook."
     IDS_ERROR_ZONEINFO                  "Unable to read timezone database (%s)."
+    IDS_ERROR_CLOCKDATA                 "The clock settings format has changed, and the saved configuration is no longer valid.\x0d\x0a\x0aSelect OK to reset your saved clocks to default settings, or Cancel to exit."
+    IDS_ERROR_INI_TITLE                 "Reset Configuration"       // max. 32
 END
 
 MENU IDM_POPUP

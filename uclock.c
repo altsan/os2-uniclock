@@ -530,6 +530,7 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
     UniChar     uzRes[ SZRES_MAXZ ];   // buffer converted UCS-2 strings
     CHAR        szPrfKey[ 32 ],        // INI key name
                 szRes[ SZRES_MAXZ ],   // buffer for string resources
+                szRes2[ 32 ],          // ditto
                 szFont[ FACESIZE+4 ];  // current font pres.param
     HPOINTER    hicon;                 // main application icon
     LONG        x  = 0,                // window position values (from INI)
@@ -599,48 +600,22 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
         WinSetPresParam( pGlobal->clocks[1], PP_SEPARATORCOLOR, sizeof(ULONG), &clrS );
         WinSetPresParam( pGlobal->clocks[1], PP_BORDERCOLOR, sizeof(ULONG), &clrB );
         WinSetPresParam( pGlobal->clocks[1], PP_FONTNAMESIZE, 11, "9.WarpSans");
-
-/*
-        // for testing -----
-        pGlobal->usClocks = 3;
-        wtInit.cb = sizeof( WTDCDATA );
-        wtInit.flOptions = WTF_DATE_CUSTOM;
-        sprintf( wtInit.szTZ, "JST-9");
-        sprintf( wtInit.szLocale, "ja_JP");
-        UniStrcpy( wtInit.uzDesc, L"Japan");
-        UniStrcpy( wtInit.uzDateFmt, L"%Ex (%EC)");
-        pGlobal->clocks[0] = WinCreateWindow( hwndClient, WT_DISPLAY, "", 0L,
-                                            0, 0, 0, 0, hwndClient, HWND_TOP, FIRST_CLOCK, &wtInit, NULL );
-        WinSetPresParam( pGlobal->clocks[0], PP_BORDERCOLOR, sizeof(ULONG), &clrB );
-        WinSetPresParam( pGlobal->clocks[0], PP_SEPARATORCOLOR, sizeof(ULONG), &clrS );
-
-        wtInit.flOptions = WTF_TIME_CUSTOM | WTF_BORDER_TOP | WTF_BORDER_BOTTOM;
-        sprintf( wtInit.szTZ, "GMT0BST,3,-1,0,3600,10,-1,0,7200,3600");
-        sprintf( wtInit.szLocale, "en_CA");
-        UniStrcpy( wtInit.uzDesc, L"United Kingdom");
-        UniStrcpy( wtInit.uzTimeFmt, L"%I:%M %p");
-        pGlobal->clocks[1] = WinCreateWindow( hwndClient, WT_DISPLAY, "", 0L,
-                                            0, 0, 0, 0, hwndClient, HWND_TOP, FIRST_CLOCK+1, &wtInit, NULL );
-        WinSetPresParam( pGlobal->clocks[1], PP_BORDERCOLOR, sizeof(ULONG), &clrB );
-        WinSetPresParam( pGlobal->clocks[1], PP_SEPARATORCOLOR, sizeof(ULONG), &clrS );
-
-        wtInit.flOptions = 0;
-        sprintf( wtInit.szTZ, "EST5EDT,3,2,0,7200,11,1,0,7200,3600");
-        sprintf( wtInit.szLocale, "");
-        UniStrcpy( wtInit.uzDesc, L"Canada (Eastern)");
-        pGlobal->clocks[2] = WinCreateWindow( hwndClient, WT_DISPLAY, "", 0L,
-                                            0, 0, 0, 0, hwndClient, HWND_TOP, FIRST_CLOCK+2, &wtInit, NULL );
-        WinSetPresParam( pGlobal->clocks[2], PP_BORDERCOLOR, sizeof(ULONG), &clrB );
-        WinSetPresParam( pGlobal->clocks[2], PP_SEPARATORCOLOR, sizeof(ULONG), &clrS );
-        // for testing -----
-*/
     }
     else for ( i = 0; i < pGlobal->usClocks; i++ ) {
         // Load each clock's configuration from the INI
-
         sprintf( szPrfKey, "%s%02d", PRF_KEY_PANEL, i );
         fData = LoadIniData( &wtInit, sizeof(wtInit), pGlobal->hIni, PRF_APP_CLOCKDATA, szPrfKey );
         if ( !fData ) {
+            if ( i == 0 ) {
+                WinLoadString( pGlobal->hab, NULLHANDLE, IDS_ERROR_INI_TITLE, 31, szRes2 );
+                WinLoadString( pGlobal->hab, NULLHANDLE, IDS_ERROR_CLOCKDATA, SZRES_MAXZ-1, szRes );
+                if ( WinMessageBox( HWND_DESKTOP, hwnd, szRes, szRes2, 0,
+                                    MB_OKCANCEL | MB_WARNING | MB_MOVEABLE ) != MBID_OK )
+                {
+                    WinPostMsg( hwnd, WM_QUIT, 0L, 0L );
+                    return FALSE;
+                }
+            }
             memset( &wtInit, 0, sizeof( wtInit ));
             if ( ! ( uconv &&
                    ( WinLoadString( pGlobal->hab, NULLHANDLE, IDS_LOC_DEFAULT, SZRES_MAXZ-1, szRes )) &&
@@ -660,8 +635,7 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
                                               0, 0, 0, 0, hwndClient, HWND_TOP, FIRST_CLOCK+i, &wtInit, NULL );
         if ( ! pGlobal->clocks[i] ) continue;
 
-//        WinSendMsg( pGlobal->clocks[i], WTD_SETINDICATORS,
-//                    MPFROMP( pGlobal->hptrDay ), MPFROMP( pGlobal->hptrNight ));
+//        WinSendMsg( pGlobal->clocks[i], WTD_SETINDICATORS, MPFROMP( pGlobal->hptrDay ), MPFROMP( pGlobal->hptrNight ));
 
         if ( fLook ) {
             if ( savedPP.clrFG != NO_COLOUR_PP )
@@ -1104,8 +1078,7 @@ BOOL AddNewClock( HWND hwnd )
     flOptions = WTF_BORDER_FULL;
     if ( usNew ) flOptions &= ~WTF_BORDER_BOTTOM;
 
-//    WinSendMsg( hwndClock, WTD_SETINDICATORS,
-//                MPFROMP(pGlobal->hptrDay), MPFROMP(pGlobal->hptrNight));
+//    WinSendMsg( hwndClock, WTD_SETINDICATORS, MPFROMP(pGlobal->hptrDay), MPFROMP(pGlobal->hptrNight));
 
     // set default properties
     WinSendMsg( hwndClock, WTD_SETTIMEZONE, MPFROMP(pGlobal->szTZ), MPFROMP(uzRes));

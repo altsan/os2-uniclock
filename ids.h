@@ -147,6 +147,9 @@
 #define IDS_ERROR_CLKDATA           10901
 #define IDS_ERROR_NOTEBOOK          10902
 #define IDS_ERROR_ZONEINFO          10903
+#define IDS_ERROR_CLOCKDATA         10904
+#define IDS_ERROR_CLOCKLOOK         10905
+#define IDS_ERROR_INI_TITLE         10906
 
 
 // Help subtable IDs

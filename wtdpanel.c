@@ -1510,7 +1510,7 @@ void DrawDayIndicatorSmall( HPS hps )
                               0x13, 0x90,   // ...1..11 1..1....
                               0x0F, 0xE0,   // ....1111 111.....
                               0x0F, 0xE0,   // ....1111 111.....
-                              0x1F, 0xF0,   // .1111111 111111..
+                              0x7F, 0xFC,   // .1111111 111111..
                               0x0F, 0xE0,   // ....1111 111.....
                               0x0F, 0xE0,   // ....1111 111.....
                               0x13, 0x90,   // ...1..11 1..1....
@@ -1520,10 +1520,14 @@ void DrawDayIndicatorSmall( HPS hps )
                               0x00, 0x00
                              };
     SIZEL sizl;
+    LONG  lFG;
 
     sizl.cx = 16;
     sizl.cy = 16;
+    lFG = GpiQueryColor( hps );
+    GpiSetColor( hps, lFG & ~0x333333 );
     GpiImage( hps, 0L, &sizl, sizeof( abImage ), abImage );
+    GpiSetColor( hps, lFG );
 }
 
 
@@ -1600,10 +1604,14 @@ void DrawNightIndicatorSmall( HPS hps )
                               0x00, 0x00
                              };
     SIZEL sizl;
+    LONG  lFG;
 
     sizl.cx = 16;
     sizl.cy = 16;
+    lFG = GpiQueryColor( hps );
+    GpiSetColor( hps, lFG & ~0x333333 );
     GpiImage( hps, 0L, &sizl, sizeof( abImage ), abImage );
+    GpiSetColor( hps, lFG );
 }
 
 

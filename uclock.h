@@ -184,6 +184,7 @@ typedef struct _Geo_Coordinates {
 
 
 // Configurable data for the world-time display, used by WM_CREATE/WM_QUERYCONFIG
+// (and also for saving clock settings to the INI file).
 typedef struct _WTDisplay_CData {
     USHORT        cb;                       // size of this data structure
     ULONG         flOptions;                // option settings
