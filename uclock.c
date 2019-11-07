@@ -167,6 +167,7 @@ typedef struct _Global_Data {
     USHORT  usClocks;                   // number of clocks configured
     ULONG   timer;                      // refresh timer
     CHAR    szTZ[ TZSTR_MAXZ ];         // actual system TZ
+    CHAR    szLoc[ ULS_LNAMEMAX+1 ];    // actual system locale
     USHORT  usMsgClock;                 // clock which sent the latest message
     USHORT  fsStyle;                    // global style flags
     USHORT  usCompactThreshold;         // when to auto-switch to compact view
@@ -285,7 +286,10 @@ int main( int argc, char *argv[] )
         global.bDescWidth = 55;
 
         pszEnv = getenv("TZ");
-        if (pszEnv) strncpy( global.szTZ, pszEnv, TZSTR_MAXZ );
+        if (pszEnv) strncpy( global.szTZ, pszEnv, TZSTR_MAXZ-1 );
+
+        pszEnv = getenv("LANG");
+        if (pszEnv) strncpy( global.szLoc, pszEnv, ULS_LNAMEMAX );
 
         hwndFrame = WinCreateStdWindow( HWND_DESKTOP, 0L, &flStyle,
                                         SZ_WINDOWCLASS, "UniClock", 0L,
@@ -574,6 +578,7 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
         pGlobal->clocks[0] = WinCreateWindow( hwndClient, WT_DISPLAY, "", 0L,
                                               0, 0, 0, 0, hwndClient, HWND_TOP, FIRST_CLOCK, NULL, NULL );
         WinSendMsg( pGlobal->clocks[0], WTD_SETTIMEZONE, MPFROMP("UTC0"), MPFROMP(uzRes));
+        WinSendMsg( pGlobal->clocks[0], WTD_SETLOCALE, MPFROMP("univ"), MPVOID );
         WinSendMsg( pGlobal->clocks[0], WTD_SETOPTIONS, MPFROMLONG( WTF_BORDER_FULL ), MPVOID );
 //        WinSendMsg( pGlobal->clocks[0], WTD_SETINDICATORS, MPFROMP( pGlobal->hptrDay ), MPFROMP( pGlobal->hptrNight ));
         WinSetPresParam( pGlobal->clocks[0], PP_SEPARATORCOLOR, sizeof(ULONG), &clrS );
@@ -588,6 +593,7 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
         pGlobal->clocks[1] = WinCreateWindow( hwndClient, WT_DISPLAY, "", 0L,
                                               0, 0, 0, 0, hwndClient, HWND_TOP, FIRST_CLOCK+1, NULL, NULL );
         WinSendMsg( pGlobal->clocks[1], WTD_SETTIMEZONE, MPFROMP(pGlobal->szTZ), MPFROMP(uzRes));
+        WinSendMsg( pGlobal->clocks[1], WTD_SETLOCALE, MPFROMP(pGlobal->szLoc), MPVOID );
         WinSendMsg( pGlobal->clocks[1], WTD_SETOPTIONS, MPFROMLONG( WTF_BORDER_FULL & ~WTF_BORDER_BOTTOM ), MPVOID );
 //        WinSendMsg( pGlobal->clocks[1], WTD_SETINDICATORS, MPFROMP( pGlobal->hptrDay ), MPFROMP( pGlobal->hptrNight ));
         WinSetPresParam( pGlobal->clocks[1], PP_SEPARATORCOLOR, sizeof(ULONG), &clrS );
@@ -1103,6 +1109,7 @@ BOOL AddNewClock( HWND hwnd )
 
     // set default properties
     WinSendMsg( hwndClock, WTD_SETTIMEZONE, MPFROMP(pGlobal->szTZ), MPFROMP(uzRes));
+    WinSendMsg( hwndClock, WTD_SETLOCALE, MPFROMP(pGlobal->szLoc), MPVOID );
     WinSendMsg( hwndClock, WTD_SETOPTIONS,  MPFROMLONG(flOptions), MPVOID );
     WinSetPresParam( hwndClock, PP_SEPARATORCOLOR, sizeof(ULONG), &clrS );
     WinSetPresParam( hwndClock, PP_BORDERCOLOR, sizeof(ULONG), &clrB );
@@ -1967,7 +1974,7 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
 
             // formatting locale
             sIdx = (SHORT) WinSendDlgItemMsg( hwnd, IDD_LOCALES, LM_SEARCHSTRING,
-                                              MPFROM2SHORT(LSS_CASESENSITIVE,LIT_FIRST),
+                                              MPFROM2SHORT(0,LIT_FIRST),
                                               MPFROMP(pConfig->clockData.szLocale) );
             if ( sIdx != LIT_ERROR )
                 WinSendDlgItemMsg( hwnd, IDD_LOCALES, LM_SELECTITEM,
