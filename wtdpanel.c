@@ -742,7 +742,7 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
         if ( pdata->flState & WTS_BOT_SUNTIME ) {
             // sunrise/sunset times
             ptl.x = rclBottom.xLeft + lTmInset;
-            ptl.y = rclBottom.yBottom + 20;
+            ptl.y = rclBottom.yBottom + lTBOffset + 8 + ( fm.lXHeight / 2 );
             GpiMove( hps, &ptl );
             DrawSunriseIndicator( hps );
             pchText = bUnicode ? (PCH) pdata->uzSunR : (PCH) pdata->szSunR;
@@ -752,7 +752,7 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
             GpiCharStringPosAt( hps, &ptl, &rclBottom, CHS_CLIP, cb, pchText, NULL );
             GpiQueryCurrentPosition( hps, &ptl );
             ptl.x += 3 * lTmInset;
-            ptl.y = rclBottom.yBottom + 20;
+            ptl.y = rclBottom.yBottom + lTBOffset + 8 + ( fm.lXHeight / 2 );
             GpiMove( hps, &ptl );
             DrawSunsetIndicator( hps );
             pchText = bUnicode ? (PCH) pdata->uzSunS : (PCH) pdata->szSunS;
@@ -1444,8 +1444,6 @@ void DrawSunriseIndicator( HPS hps )
 {
     static BYTE abImage[] = { 0x00, 0x00,
                               0x00, 0x00,
-                              0x00, 0x00,
-                              0x00, 0x00,
                               0x02, 0x00,       // ......1. ........
                               0x02, 0x00,       // ......1. ........
                               0x42, 0x10,       // .1....1. ...1....
@@ -1454,6 +1452,8 @@ void DrawSunriseIndicator( HPS hps )
                               0x3F, 0xE0,       // ..111111 111.....
                               0x3F, 0xE0,       // ..111111 111.....
                               0xFF, 0xF8,       // 11111111 11111...
+                              0x00, 0x00,
+                              0x00, 0x00,
                               0x00, 0x00,
                               0x00, 0x00,
                               0x00, 0x00,
@@ -1477,7 +1477,6 @@ void DrawSunsetIndicator( HPS hps )
                               0x00, 0x00,
                               0x00, 0x00,
                               0x00, 0x00,
-                              0x00, 0x00,
                               0xFF, 0xF8,       // 11111111 11111...
                               0x3F, 0xE0,       // ..111111 111.....
                               0x3F, 0xE0,       // ..111111 111.....
@@ -1486,6 +1485,7 @@ void DrawSunsetIndicator( HPS hps )
                               0x42, 0x10,       // .1....1. ...1....
                               0x02, 0x00,       // ......1. ........
                               0x02, 0x00,       // ......1. ........
+                              0x00, 0x00,
                               0x00, 0x00,
                               0x00, 0x00,
                              };
