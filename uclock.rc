@@ -66,9 +66,9 @@ BEGIN
     MENUITEM "~Add clock...",                       ID_CLOCKADD,        MIS_TEXT
     MENUITEM "~Delete clock",                       ID_CLOCKDEL,        MIS_TEXT
     MENUITEM SEPARATOR
-    SUBMENU "~Help",                                IDM_HELP
+    SUBMENU "~Help",                                IDM_HELP,
     BEGIN
-        MENUITEM "~General help",                   ID_HELP,            MIS_HELP | MIS_TEXT
+        MENUITEM "~General help\tF1",               ID_HELP,            MIS_HELP | MIS_TEXT
         MENUITEM SEPARATOR
         MENUITEM "Product information",             ID_ABOUT,           MIS_TEXT
     END
@@ -88,7 +88,7 @@ END
 
 HELPTABLE ID_MAINPROGRAM
 BEGIN
-    HELPITEM ID_MAINPROGRAM, HSTB_MAIN, 100
+    HELPITEM ID_MAINPROGRAM, HSTB_MAIN, 001
 END
 
 HELPSUBTABLE HSTB_MAIN

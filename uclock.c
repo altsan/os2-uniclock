@@ -248,12 +248,12 @@ int main( int argc, char *argv[] )
     BOOL      fInitFailure = FALSE;
     PSZ       pszEnv;
 
+    // Presentation Manager program initialization
     hab = WinInitialize( 0 );
     if ( hab == NULLHANDLE ) {
         sprintf( szError, "WinInitialize() failed.");
         fInitFailure = TRUE;
     }
-
     if ( ! fInitFailure ) {
         hmq = WinCreateMsgQueue( hab, 0 );
         if ( hmq == NULLHANDLE ) {
@@ -262,12 +262,14 @@ int main( int argc, char *argv[] )
         }
     }
 
+    // Register the custom clock panel class
     if (( ! fInitFailure ) &&
         ( ! WinRegisterClass( hab, WT_DISPLAY, WTDisplayProc, CS_SIZEREDRAW, sizeof(PWTDDATA) )))
     {
         sprintf( szError, "Failed to register class %s:\nWinGetLastError() = 0x%X\n", WT_DISPLAY, WinGetLastError(hab) );
         fInitFailure = TRUE;
     }
+    // And the UniClock main window class
     if (( ! fInitFailure ) &&
         ( ! WinRegisterClass( hab, SZ_WINDOWCLASS, MainWndProc, CS_SIZEREDRAW, sizeof(PUCLGLOBAL) )))
     {
@@ -276,8 +278,10 @@ int main( int argc, char *argv[] )
     }
 
     if ( !fInitFailure ) {
+        // Get a handle to WPConfig (for the colour wheel support)
         hlib = WinLoadLibrary( hab, "WPCONFIG.DLL" );
 
+        // Initialize global program data
         memset( &global, 0, sizeof(global) );
         global.hab      = hab;
         global.hmq      = hmq;
@@ -285,12 +289,14 @@ int main( int argc, char *argv[] )
         global.usCompactThreshold = 50;
         global.bDescWidth = 55;
 
+        // Get system environment variables
         pszEnv = getenv("TZ");
         if (pszEnv) strncpy( global.szTZ, pszEnv, TZSTR_MAXZ-1 );
 
         pszEnv = getenv("LANG");
         if (pszEnv) strncpy( global.szLoc, pszEnv, ULS_LNAMEMAX );
 
+        // Create the program window
         hwndFrame = WinCreateStdWindow( HWND_DESKTOP, 0L, &flStyle,
                                         SZ_WINDOWCLASS, "UniClock", 0L,
                                         NULLHANDLE, ID_MAINPROGRAM, &hwndClient );
@@ -303,7 +309,12 @@ int main( int argc, char *argv[] )
     if ( fInitFailure ) {
         WinMessageBox( HWND_DESKTOP, HWND_DESKTOP, szError, "Program Initialization Error", 0, MB_CANCEL | MB_ERROR );
     } else {
+        // Basic window setup
+
+        // Save pointer to the global data struct in a window word
         WinSetWindowPtr( hwndClient, 0, &global );
+
+        // Get various handles to the frame controls
         global.hwndTB = WinWindowFromID( hwndFrame, FID_TITLEBAR );
         global.hwndSM = WinWindowFromID( hwndFrame, FID_SYSMENU );
         global.hwndMM = WinWindowFromID( hwndFrame, FID_MINMAX );
@@ -311,7 +322,6 @@ int main( int argc, char *argv[] )
         // Initialize online help
         if ( ! WinLoadString( hab, 0, IDS_HELP_TITLE, SZRES_MAXZ-1, szRes ))
             sprintf( szRes, "Help");
-
         helpInit.cb                       = sizeof( HELPINIT );
         helpInit.pszTutorialName          = NULL;
         helpInit.phtHelpTable             = (PHELPTABLE) MAKELONG( ID_MAINPROGRAM, 0xFFFF );
@@ -322,14 +332,13 @@ int main( int argc, char *argv[] )
         helpInit.idActionBar              = 0;
         helpInit.pszHelpWindowTitle       = szRes;
         helpInit.pszHelpLibraryName       = HELP_FILE;
-
         hwndHelp = WinCreateHelpInstance( hab, &helpInit );
         WinAssociateHelpInstance( hwndHelp, hwndFrame );
 
-        // load the popup menu
+        // Create the popup menu
         global.hwndPopup = WinLoadMenu( HWND_DESKTOP, 0, IDM_POPUP );
 
-        // Open the INI file
+        // Open the INI file, if there is one
         OpenProfile( &global );
 
         // Initialize and display the user interface
@@ -338,8 +347,10 @@ int main( int argc, char *argv[] )
         // Now run the main program message loop
         while ( WinGetMsg( hab, &qmsg, 0, 0, 0 )) WinDispatchMsg( hab, &qmsg );
 
+        // Stop the clock timer
         WinStopTimer( hab, hwndClient, ID_TIMER );
 
+        // Free handle to WPConfig
         WinDeleteLibrary( hab, hlib );
     }
 
@@ -368,12 +379,14 @@ MRESULT EXPENTRY MainWndProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
     switch( msg ) {
 
+        // Mouse drag (either button) - move the window
         case WM_BEGINDRAG:
             WinSetFocus( HWND_DESKTOP, hwnd );
             WinSendMsg( WinQueryWindow( hwnd, QW_PARENT ), WM_TRACKFRAME, MPFROMSHORT(TF_MOVE), MPVOID );
             break;
 
 
+        // Do nothing here (initial setup is called from main after this returns)
         case WM_CREATE:
             return (MRESULT) FALSE;
 
@@ -383,7 +396,7 @@ MRESULT EXPENTRY MainWndProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
                 case ID_CONFIG:
                     ConfigNotebook( hwnd );
-                    //WinPostMsg( hwnd, WM_SAVEAPPLICATION, 0, 0 );
+                    //  WinPostMsg( hwnd, WM_SAVEAPPLICATION, 0, 0 );
                     break;
 
                 case ID_CLOCKCFG:
@@ -466,6 +479,7 @@ MRESULT EXPENTRY MainWndProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
 
         case WM_CONTROL:
+            // Not used at present
             switch( SHORT1FROMMP( mp1 )) {
             } // end WM_CONTROL messages
             break;
@@ -491,6 +505,7 @@ MRESULT EXPENTRY MainWndProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             break;
 
         case WM_SAVEAPPLICATION:
+            // This causes some kind of race condition, so we don't call it now
             // Save the current settings to the INI file
             SaveSettings( hwnd );
             break;

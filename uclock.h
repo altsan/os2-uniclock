@@ -155,6 +155,7 @@
 #define WTS_CVR_DATE            0x1000      // show (normal) date in compact view right
 #define WTS_CVR_SUNTIME         0x2000      // show sunrise/sunset times in compact view right
 #define WTS_MIS_WEATHER         0x10000     // * display weather icon
+#define WTS_GUI_HILITE          0x1000000   // draw focus (highlighted) state
 #define WTS_GUI_MENUPOPUP       0x2000000   // draw "active popup menu" border
 
 

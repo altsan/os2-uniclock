@@ -6,6 +6,7 @@ For v1.0:
 - Program settings: support reordering of existing clocks.
 - Program settings: defaults settings for new clocks (format, appearance).
 - Program settings: separator line style (solid, dotted, none).
+- Keyboard support.
 - Time conversion utility.
 
 TBD:

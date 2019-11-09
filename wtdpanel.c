@@ -176,6 +176,15 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             }
             return (MRESULT) TRUE;
 
+        case WM_SETFOCUS:
+            pdata = WinQueryWindowPtr( hwnd, 0 );
+            if ( (USHORT)mp2 == TRUE )
+                pdata->flState |= WTS_GUI_HILITE;
+            else
+                pdata->flState &= ~WTS_GUI_HILITE;
+            WinInvalidateRect(hwnd, NULL, FALSE);
+            break;
+
 
         // set the 'menu active' flag then pass this message up to the owner
         case WM_CONTEXTMENU:
@@ -262,6 +271,16 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                 ptl.x = rcl.xRight-1; ptl.y = rcl.yTop-1;
                 GpiLine( hps, &ptl );
                 rcl.yTop -= 1;
+            }
+
+            // draw the selection highlight (a solid border)
+            if ( pdata->flState & WTS_GUI_HILITE ) {
+                GpiSetColor( hps, clrFG );
+                GpiSetLineType( hps, LINETYPE_SOLID );
+                ptl.x = 1; ptl.y = 1;
+                GpiMove( hps, &ptl );
+                ptl.x = rcl.xRight - 1; ptl.y = rcl.yTop - 1;
+                GpiBox( hps, DRO_OUTLINE, &ptl, 0, 0 );
             }
 
             // draw the popup menu indication border, if applicable
