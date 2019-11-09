@@ -16,7 +16,7 @@ information.
 
 .*****************************************************************************
 :h1 x=left y=bottom width=100% height=100% res=100.Using Universal Clock
-:p.The Universal Clock application consists of up to 16 clock panels, which
+:p.The Universal Clock application consists of up to 12 clock panels, which
 can be arranged vertically, horizontally, or in a grid.
 
 :p.You can add, delete, or modify these clock panels according to your
@@ -29,44 +29,39 @@ preferences.
 :eul.
 :p.The current view is selected automatically depending on the
 window size&colon. if the Universal Clock window is reduced below a certain
-size (which can be customized in the global settings), the clock panels will
+size (which can be customized in the program settings), the clock panels will
 automatically switch over to compact view.
 
 :p.See also&colon.
 :ul compact.
 :li.:link reftype=hd res=110.The initial configuration:elink.
 :li.:link reftype=hd res=140.Adding and removing clocks:elink.
-:li.:link reftype=hd res=150.Clock configuration:elink.
-:li.:link reftype=hd res=160.Global configuration:elink.
+:li.:link reftype=hd res=150.Clock properties:elink.
+:li.:link reftype=hd res=160.Program settings:elink.
 :eul.
 
 .* ---------------------------------------------------------------------------
 :h2 x=left y=bottom width=100% height=100% res=110.The initial configuration
+:p.:artwork name='en_default.bmp'.
+
 :p.The first time you run Universal Clock, it will start up with a default
 initial configuration. This consists of two clock panels&colon.
-:ul compact.
-:li.&osq.(Local Time)&csq., which is configured with the current system
-timezone;
-:li.&osq.(Coordinated Universal Time)&csq., which shows standard UTC time.
-:eul.
+&osq.(Local Time)&csq., which is configured with the current system
+timezone; and &osq.(Coordinated Universal Time)&csq., which shows standard
+UTC time.
 
-:p.:artwork name='en_default.bmp' align='center'.
+:p.Both of these clocks will initially use your system's default window colours
+and locale conventions, and the WarpSans font (if available). You can customize
+or delete either of these clocks, and/or add new clocks.
 
-:p.Both clocks will use your system's default window colours and locale
-conventions, and the WarpSans font (if available).
-
-:p.You can customize or delete either of these clocks, and/or add new clocks.
-(Note that you cannot delete the last clock panel &endash. there must be at
-least one.)
-
-:p.You can also set global configuration options, which control the behaviour
-of the Universal Clock program as a whole.
+:p.You can also configure the global program settings, which control the
+behaviour of the Universal Clock program as a whole.
 
 :p.See&colon.
 :ul compact.
 :li.:link reftype=hd res=140.Adding and removing clocks:elink.
-:li.:link reftype=hd res=150.Clock configuration:elink.
-:li.:link reftype=hd res=160.Global configuration:elink.
+:li.:link reftype=hd res=150.Clock properties:elink.
+:li.:link reftype=hd res=160.Program settings:elink.
 :eul.
 
 
@@ -105,6 +100,7 @@ on the text in this area will toggle the display between showing the current
 date, and showing the current date's sunrise and sunset times in the
 configured location.
 
+
 .* ---------------------------------------------------------------------------
 :h2 x=left y=bottom width=100% height=100% res=130.Compact view
 :p.:artwork name='en_compact.bmp'.
@@ -134,7 +130,7 @@ or night-time in the configured location.
 :h2 x=left y=bottom width=100% height=100% res=140.Adding and removing clocks
 :p.To add a new clock panel, click mouse button 2 on any existing clock panel,
 and choose :hp1.Add clock:ehp1. from the popup menu. The
-:link reftype=hd res=150.clock configuration:elink. notebook will open.
+:link reftype=hd res=150.clock properties:elink. notebook will open.
 Configure the desired settings for the new clock, and select :hp1.OK:ehp1.
 when done. The new clock panel will be added to the Universal Clock window.
 
@@ -143,15 +139,172 @@ want to delete, and select :hp1.Delete clock:ehp1. from the popup menu. You
 will be prompted for confirmation; select :hp1.Yes:ehp1. and the clock panel
 will be removed from Universal Clock.
 
+:nt.If you remove all clock panels and then close Universal Clock, the next
+time you start the program it will revert to the
+:link reftype=hd res=110.initial configuration:elink.:ent.
+
 
 .* ---------------------------------------------------------------------------
-:h2 x=left y=bottom width=100% height=100% res=150.Clock configuration
-:p.
+:h2 x=left y=bottom width=100% height=100% res=150.Clock properties
+:p.Each clock panel has its own configuration settings. To configure a clock,
+click mouse button 2 on that clock, and select :hp1.Clock properties:ehp1.
+from the popup menu. This brings up the clock properties notebook.
+
+:p.This notebook has two pages&colon. :link reftype=hd res=151.Clock
+setup:elink. and :link reftype=hd res=152.Appearance:elink..
+
+.* ...........................................................................
+:h3 x=left y=bottom width=100% height=100% res=151.Clock setup
+:p.This page controls the clock settings.
+:dl break=fit tsize=20.
+
+:dt.Description
+:dd.A short, free-form name describing what time this clock represents. This
+will be displayed in the clock panel along with the time/date information.
+
+:dt.Timezone
+:dd.This is the formatted timezone specifier that determines the time shown
+in this clock. If you know the desired specifier, you can enter it manually;
+otherwise, clicking the &osq.&per.&per.&per.&csq. button will bring up the
+:link reftype=hd res=153.timezone selection dialog:elink., which allows you
+to select a timezone from a list of geographic locations.
+
+:dt.Coordinates
+:dd.Selecting this checkbox will enable geographic coordinates for this
+clock. The coordinates themselves are selected along with the city in
+the timezone selection dialog. Enabling geographic coordinates will in turn
+enable sunrise/sunset times and the day/night indicator for this clock.
+
+:dt.Locale
+:dd.The locale affects the time and date formatting preferences for this
+clock (see the next two items). The default is the current system or
+process locale (a.k.a. the %LANG% setting). This is a cosmetic preference
+and has no relation to the timezone settings for this clock.
+
+:dt.Time format
+:dd.This setting controls the formatting of the time display for this
+clock. You can select from four basic format styles&colon.
+:dl tsize=25.
+:dt.System default
+:dd.Formats the time according to the system-wide &osq.PM_National&csq.
+conventions for Presentation Manager applications.
+:dt.Locale default
+:dd.Formats the time according to the defaults for the locale selected
+under :hp1.Locale:ehp1. (see above).
+:dt.Locale alternative
+:dd.Some locales (mostly those with non-Latin writing systems) define
+an &osq.alternative&csq. format for time display, usually one that uses
+native characters and symbols. This option formats the time according to
+that format, if the locale (as selected under :hp1.Locale:ehp1.) defines
+it. If the selected locale does not define an alternative time format,
+then this option is the same as &osq.Locale default&csq..
+:dt.Custom string
+:dd.This option allows you to enter a custom time format string using
+:link reftype=fn refid=strftime.strftime:elink. syntax.
+:edl.
+:p.For the &osq.System default&csq. and &osq.Locale default&csq.
+format styles, you have the option of disabling the seconds display.
+(Due to the extreme variability of &osq.Locale alternative&csq. style,
+it does not support this option.)
+For the &osq.Custom string&csq. style, display of seconds is controlled
+by the specified format string.
+
+:dt.Date format
+:dd.This setting controls the formatting of the date display for this
+clock. You can select from four basic format styles&colon.
+:dl tsize=25.
+:dt.System default
+:dd.Formats the date according to the system-wide &osq.PM_National&csq.
+conventions for Presentation Manager applications.
+:dt.Locale default
+:dd.Formats the date according to the defaults for the locale selected
+under :hp1.Locale:ehp1. (see above).
+:dt.Locale alternative
+:dd.This option formats the date according to the selected locale's
+&osq.alternative&csq. date format, if it defines one. If it does not, then
+this option is the same as &osq.Locale default&csq..
+:dt.Custom string
+:dd.This option allows you to enter a custom date format string using
+:link reftype=fn refid=strftime.strftime:elink. syntax.
+:edl.
+:edl.
+
+.* ...........................................................................
+:h3 x=left y=bottom width=100% height=100% res=152.Appearance
+:p.This page controls the clock's colour and font settings.
+
+:dl break=fit tsize=20.
+
+:dt.Font
+:dd.Controls the display font used by this clock. You can drag a font
+into the preview area from the OS/2 Font Palette, or select a font using
+the :hp1.Font:ehp1. button.
+
+:dt.Colours
+:dd.Controls various colours used by this clock. For each colour setting,
+you can drag a colour into the preview area from one the OS/2 colour palettes,
+or use the buttons to select a colour.
+
+.* Background
+.* Foreground
+.* Borders
+.* Separator line
+:edl.
+
+
+:fn id=strftime.
+:p.For details of the format string syntax, see the description of the
+:hp2.UniStrftime:ehp2. function in the Universal Language Support section
+of the OS/2 toolkit; or else refer to any modern C library's
+:hp2.strftime:ehp2. specification.
+:efn.
+
+.* ...........................................................................
+:h3 x=left y=bottom width=100% height=100% res=153.Timezone selector
+:p.This dialog allows you to select a timezone by country and region.
+:dl tsize=20.
+:dt.Select by country
+:dd.Select the country which contains the timezone you want.
+:dt.Zone
+:dd.Select the zone name within the selected country. (Zones are named
+following the conventions of the open source :hp1.tzdata:ehp1. distribution,
+in the form "Continent/[Region/]City". Select the city closest to the
+location that you want to represent.)
+:dt.Coordinates
+:dd.Specifies the geographic coordinates (latitude and longitude) of the
+selected location. When you select a zone, the predefined coordinates for
+that zone are populated; you can then modify them as needed.
+:dt.TZ value
+:dd.This field shows the timezone specifier, also known as the TZ value.
+When you select a zone, the predefined TZ value for that zone is populated
+in this field; you can then modify it if necessary.
+:edl.
+:p.Select :hp1.OK:ehp1. to accept the specified TZ value and coordinates for
+the current clock.
 
 
 .* ---------------------------------------------------------------------------
-:h2 x=left y=bottom width=100% height=100% res=160.Global configuration
-:p.
+:h2 x=left y=bottom width=100% height=100% res=160.Program settings
+:p.This dialog allows you to configure global program settings.
+:dl tsize=30.
+:dt.Show title bar
+:dd.Enables or disables the standard window title bar for the Universal Clock
+application.
+:dt.Use compact view below
+:dd.Sets the size threshold below which clock panels are drawn in compact
+rather than standard view. The specified value is the size of an individual
+clock panel, in pixels.
+:dt.Compact description width
+:dd.Specifies where the vertical separator line dividing the description and
+time/date display areas will be drawn in compact view. This is given as a
+percentage of the clock panel width.
+:dt.Clock panel arrangement
+:dd.This allows you to control the arrangement of clock panels into columns.
+By default (value 0), all clocks are arranged in a single column, with the
+first clock at the bottom.
+:p.The list box shows a summary of all currently-defined clock panels. At
+present, this is for reference only.
+:edl.
 
 
 .*****************************************************************************
