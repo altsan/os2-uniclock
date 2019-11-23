@@ -46,7 +46,10 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
     RECTL       rcl;                    // control's window area
     POINTL      ptl;                    // current drawing position
     POINTS      pts;                    // current pointer position
-    CHAR        szEnv[ TZSTR_MAXZ+4 ] = {0};  // used to write TZ environment
+    CHAR        szEnv[ TZSTR_MAXZ+4 ] = {0},  // used to write TZ environment
+                ch;                     // character value for WM_CHAR event
+    USHORT      fsFlags;                // WM_CHAR flags
+    USHORT      usVK;                   // WM_CHAR virtual-key code
     LONG        clrBG, clrFG, clrBor;   // current fore/back/border colours
     ULONG       ulid,
                 flNewOpts,              // control options mask
@@ -107,6 +110,7 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             SetFormatStrings( pdata );
 
             return (MRESULT) FALSE;
+            // WM_CREATE
 
 
         case WM_DESTROY:
@@ -175,6 +179,81 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                 }
             }
             return (MRESULT) TRUE;
+            // WM_BUTTON1CLICK
+
+
+        case WM_CHAR:
+            fsFlags = SHORT1FROMMP( mp1 );
+            if ( fsFlags & KC_KEYUP ) break;    // don't process key-up events
+
+            // we are only interested in virtual keys
+            if (( fsFlags & KC_VIRTUALKEY ) != KC_VIRTUALKEY ) break;
+
+            ch   = (CHAR)( SHORT1FROMMP( mp2 ) & 0xFF );
+            usVK = SHORT2FROMMP( mp2 );
+            //_PmpfF(("Key: %u", usVK ));
+
+            if (( usVK == VK_LEFT ) || ( usVK == VK_UP )) {
+                // left/up arrow: previous focus area
+                if ( pdata->flOptions & WTF_MODE_COMPACT ) {
+                    // In compact mode, only FOCUS1 and FOCUS4 will be used
+                    if ( pdata->flState & WTS_GUI_FOCUS1 ) {
+                        pdata->flState &= ~WTS_GUI_FOCUSALL;
+                        pdata->flState |= WTS_GUI_FOCUS4;
+                    }
+                    else {
+                        pdata->flState &= ~WTS_GUI_FOCUSALL;
+                        pdata->flState |= WTS_GUI_FOCUS1;
+                    }
+                }
+                else {
+                    // In standard mode, FOCUS1, FOCUS2 and FOCUS4 are used for now
+                    if ( pdata->flState & WTS_GUI_FOCUS1 ) {
+                        pdata->flState &= ~WTS_GUI_FOCUSALL;
+                        pdata->flState |= WTS_GUI_FOCUS4;
+                    }
+                    else if ( pdata->flState & WTS_GUI_FOCUS4 ) {
+                        pdata->flState &= ~WTS_GUI_FOCUSALL;
+                        pdata->flState |= WTS_GUI_FOCUS2;
+                    }
+                    else {
+                        pdata->flState &= ~WTS_GUI_FOCUSALL;
+                        pdata->flState |= WTS_GUI_FOCUS1;
+                    }
+                }
+            }
+            else if (( usVK == VK_RIGHT ) || ( usVK == VK_DOWN )) {
+                // right/down arrow: next focus area
+                if ( pdata->flOptions & WTF_MODE_COMPACT ) {
+                    // In compact mode, only FOCUS1 and FOCUS4 will be used
+                    if ( pdata->flState & WTS_GUI_FOCUS1 ) {
+                        pdata->flState &= ~WTS_GUI_FOCUSALL;
+                        pdata->flState |= WTS_GUI_FOCUS4;
+                    }
+                    else {
+                        pdata->flState &= ~WTS_GUI_FOCUSALL;
+                        pdata->flState |= WTS_GUI_FOCUS1;
+                    }
+                }
+                else {
+                    // In standard mode, FOCUS1, FOCUS2 and FOCUS4 are used for now
+                    if ( pdata->flState & WTS_GUI_FOCUS1 ) {
+                        pdata->flState &= ~WTS_GUI_FOCUSALL;
+                        pdata->flState |= WTS_GUI_FOCUS2;
+                    }
+                    else if ( pdata->flState & WTS_GUI_FOCUS2 ) {
+                        pdata->flState &= ~WTS_GUI_FOCUSALL;
+                        pdata->flState |= WTS_GUI_FOCUS4;
+                    }
+                    else {
+                        pdata->flState &= ~WTS_GUI_FOCUSALL;
+                        pdata->flState |= WTS_GUI_FOCUS1;
+                    }
+                }
+            }
+            break;
+            // WM_CHAR
+
 
         case WM_SETFOCUS:
             pdata = WinQueryWindowPtr( hwnd, 0 );
@@ -295,6 +374,7 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
             WinEndPaint( hps );
             return (MRESULT) 0;
+            // WM_PAINT
 
 
         case WM_PRESPARAMCHANGED:
@@ -876,7 +956,7 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     CHAR        szFont[ FACESIZE+4 ];   // current font pres.param
     PSZ         pszFontName;            // requested font family
     PCH         pchText;                // pointer to current output text
-    POINTL      ptl;                    // current drawing position
+    POINTL      ptl, ptl2;              // drawing position
     RECTL       rclLeft,                // area of top (description) region == pdata->rclDesc
                 rclRight,               // area of middle region
                 rclDateTime;            // clipping area of date/time display in the right region == pdata->rclTime
@@ -998,6 +1078,16 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
         ptl.x = rclLeft.xLeft + lTxtInset;
         ptl.y = rclLeft.yBottom + lTxtOffset;
         GpiCharStringPosAt( hps, &ptl, &rclLeft, CHS_CLIP, cb, pchText, NULL );
+        if ( pdata->flState & WTS_GUI_FOCUS1 ) {
+            // underline the text if this area has focus
+            GpiQueryCurrentPosition( hps, &ptl2 );
+            ptl.x = rclLeft.xLeft + lTxtInset;
+            ptl.y = ptl2.y - min( 2, fm.lUnderscorePosition );
+            ptl2.y = ptl.y;
+            GpiSetLineType( hps, LINETYPE_SOLID );
+            GpiMove( hps, &ptl );
+            GpiLine( hps, &ptl2 );
+        }
     }
 
     // draw the date string
@@ -1007,6 +1097,16 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
         ptl.x = rclRight.xLeft + lTxtInset;
         ptl.y = rclRight.yBottom + lTxtOffset;
         GpiCharStringPosAt( hps, &ptl, &rclDateTime, CHS_CLIP, cb, pchText, NULL );
+        if ( pdata->flState & WTS_GUI_FOCUS4 ) {
+            // underline the text if this area has focus
+            GpiQueryCurrentPosition( hps, &ptl2 );
+            ptl.x = rclLeft.xLeft + lTxtInset;
+            ptl.y = ptl2.y - min( 2, fm.lUnderscorePosition );
+            ptl2.y = ptl.y;
+            GpiSetLineType( hps, LINETYPE_SOLID );
+            GpiMove( hps, &ptl );
+            GpiLine( hps, &ptl2 );
+        }
     }
 
     // draw the time string
@@ -1016,6 +1116,16 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
         ptl.x = rclRight.xLeft + lTxtInset;
         ptl.y = rclRight.yBottom + lTxtOffset;
         GpiCharStringPosAt( hps, &ptl, &rclDateTime, CHS_CLIP, cb, pchText, NULL );
+        if ( pdata->flState & WTS_GUI_FOCUS4 ) {
+            // underline the text if this area has focus
+            GpiQueryCurrentPosition( hps, &ptl2 );
+            ptl.x = rclLeft.xLeft + lTxtInset;
+            ptl.y = ptl2.y - min( 2, fm.lUnderscorePosition );
+            ptl2.y = ptl.y;
+            GpiSetLineType( hps, LINETYPE_SOLID );
+            GpiMove( hps, &ptl );
+            GpiLine( hps, &ptl2 );
+        }
     }
 
     // draw the separator line

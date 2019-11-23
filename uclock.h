@@ -107,10 +107,11 @@
 #define WTF_BORDER_TOP          0x40        // draw a line on the top edge
 #define WTF_BORDER_BOTTOM       0x80        // draw a line on the bottom edge
 #define WTF_BORDER_FULL         0xF0        // draw all four borders
-#define WTF_CLOCK_BMP1          0x100       // * use style-1 bitmaps for clock numbers
-#define WTF_CLOCK_BMP2          0x200       // * use style-2 bitmaps for clock numbers
-#define WTF_CLOCK_BMPCUSTOM     0x400       // * use custom bitmaps for clock numbers
-#define WTF_CLOCK_ANALOG        0x800       // * use an analog-style clock
+//#define WTF_CLOCK_BMP1          0x100       // * use style-1 bitmaps for clock numbers
+//#define WTF_CLOCK_BMP2          0x200       // * use style-2 bitmaps for clock numbers
+//#define WTF_CLOCK_BMPCUSTOM     0x400       // * use custom bitmaps for clock numbers
+#define WTF_SPECIAL_CAIRO       0x400       // * use Cairo for rendering instead of standard GPI
+#define WTF_SPECIAL_ANALOG      0x800       // * use an analog-style clock
 #define WTF_PLACE_HAVECOORD     0x1000      // we have geographic coordinates for this clock
 #define WTF_PLACE_HAVECITY      0x2000      // * we have a city name for this clock
 #define WTF_PLACE_HAVEWEATHER   0x4000      // * we can determine current weather for this clock
@@ -141,11 +142,11 @@
  *   ³³³³ÀÄÄÄ right area in compact view   (0 == show (normal) time)
  *   ³³³ÀÄÄÄÄ misc. indicators             (0 == none)
  *   ³³ÀÄÄÄÄÄ TBD
- *   ³ÀÄÄÄÄÄÄ TBD
- *   ÀÄÄÄÄÄÄÄ UI input styles              (0 == default)
+ *   ³ÀÄÄÄÄÄÄ GUI state indicators         (0 == default)
+ *   ÀÄÄÄÄÄÄÄ GUI state indicators         (0 == default)
  *
  */
-// * == not yet implemented (which currently includes most of them)
+// * == not yet implemented
 #define WTS_TOP_TZNAME          0x1         // * show TZ description text in top area
 #define WTS_TOP_TZVAR           0x2         // * show TZ variable in top area
 #define WTS_TOP_COORDINATES     0x4         // * show geographic coordinates in top area
@@ -154,10 +155,14 @@
 #define WTS_BOT_SUNTIME         0x200       // show sunrise/sunset times in bottom area
 #define WTS_CVR_DATE            0x1000      // show (normal) date in compact view right
 #define WTS_CVR_SUNTIME         0x2000      // show sunrise/sunset times in compact view right
-#define WTS_MIS_WEATHER         0x10000     // * display weather icon
-#define WTS_GUI_HILITE          0x1000000   // draw focus (highlighted) state
-#define WTS_GUI_MENUPOPUP       0x2000000   // draw "active popup menu" border
-
+//#define WTS_MIS_WEATHER         0x10000     // * display weather icon
+#define WTS_GUI_HILITE          0x1000000   // draw focus (highlighted) state on panel
+#define WTS_GUI_MENUPOPUP       0x2000000   // draw "active popup menu" border on panel
+#define WTS_GUI_FOCUS1          0x10000000  // draw focus for first sub-area (left or top)
+#define WTS_GUI_FOCUS2          0x20000000  // draw focus for second sub-area (mid-left)
+#define WTS_GUI_FOCUS3          0x40000000  // draw focus for third sub-area (mid-right)
+#define WTS_GUI_FOCUS4          0x80000000  // draw focus for fourth sub-area (right or bottom)
+#define WTS_GUI_FOCUSALL        0xFF000000  // shorthand for all focus bits
 
 // ----------------------------------------------------------------------------
 // TYPEDEFS
