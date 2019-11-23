@@ -1,7 +1,7 @@
 # IBM C/C++ (VisualAge) Makefile for UNICLOCK, English version.
 #
 #
-#PMPF = 1
+PMPF = 1
 
 BL_NAME = "Universal Clock for OS/2"
 BL_VEND = "Alex Taylor"

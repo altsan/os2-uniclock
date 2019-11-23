@@ -224,6 +224,7 @@ void             CentreWindow( HWND hwnd );
 void             ErrorMessage( HWND hwnd, USHORT usID );
 void             OpenProfile( PUCLGLOBAL pGlobal );
 BOOL             LoadIniData( PVOID pData, USHORT cb, HINI hIni, PSZ pszApp, PSZ pszKey );
+SHORT            MoveListItem( HWND hwndList, SHORT sItem, BOOL fMoveUp );
 
 
 /* ------------------------------------------------------------------------- *
@@ -820,6 +821,45 @@ void CentreWindow( HWND hwnd )
         WinSetWindowPos( hwnd, HWND_TOP, x, y, wp.cx, wp.cy, SWP_SHOW | SWP_MOVE | SWP_ACTIVATE );
     }
 
+}
+
+
+/* ------------------------------------------------------------------------- *
+ * MoveListItem                                                              *
+ *                                                                           *
+ * Move a list item up or down (by one) within a listbox control. This       *
+ * function does not perform any bounds check; the caller must do that.      *
+ *                                                                           *
+ * ARGUMENTS:                                                                *
+ *   HWND  hwndList: Handle of the listbox control.                          *
+ *   SHORT sItem   : Index of the list item to move.                         *
+ *   BOOL  fMoveUp : If TRUE, item will be moved up by one position;         *
+ *                   if FALSE, item will be moved down by one position.      *
+ *                                                                           *
+ * RETURNS: SHORT                                                            *
+ *   The new item index (return code from LM_INSERTITEM).                    *
+ * ------------------------------------------------------------------------- */
+SHORT MoveListItem( HWND hwndList, SHORT sItem, BOOL fMoveUp )
+{
+    UCHAR szDesc[ LOCDESC_MAXZ ];
+    ULONG ul;
+
+    WinSendMsg( hwndList, LM_QUERYITEMTEXT,
+                MPFROM2SHORT( sItem, LOCDESC_MAXZ-1 ), MPFROMP(szDesc) );
+    ul = (ULONG) WinSendMsg( hwndList, LM_QUERYITEMHANDLE,
+                             MPFROMSHORT(sItem), 0 );
+    WinEnableWindowUpdate( hwndList, FALSE );
+    WinSendMsg( hwndList, LM_DELETEITEM, MPFROMSHORT(sItem), 0 );
+    if ( fMoveUp )
+        sItem--;
+    else
+        sItem++;
+    sItem = (SHORT) WinSendMsg( hwndList, LM_INSERTITEM,
+                                MPFROMSHORT(sItem), MPFROMP(szDesc) );
+    WinSendMsg( hwndList, LM_SETITEMHANDLE,
+                MPFROMSHORT(sItem), MPFROMLONG((LONG)ul) );
+    WinShowWindow( hwndList, TRUE );
+    return ( sItem );
 }
 
 
@@ -1472,6 +1512,7 @@ BOOL CfgPopulateNotebook( HWND hwnd, PUCFGDATA pConfig )
 MRESULT EXPENTRY CfgCommonPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 {
     static PUCFGDATA pConfig;
+    SHORT  sIdx, sCount;
 
     switch ( msg ) {
 
@@ -1503,6 +1544,31 @@ MRESULT EXPENTRY CfgCommonPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2
 
         case WM_COMMAND:
             switch( SHORT1FROMMP( mp1 )) {
+
+                case IDD_CLOCKUP:
+                    sIdx = (SHORT) WinSendDlgItemMsg( hwnd, IDD_CLOCKLIST,
+                                                      LM_QUERYSELECTION,
+                                                      MPFROMSHORT(LIT_CURSOR), 0 );
+                    if (( sIdx != LIT_NONE ) && ( sIdx > 0 )) {
+                        // move list item up by one
+                        MoveListItem( WinWindowFromID( hwnd, IDD_CLOCKLIST ), sIdx, TRUE );
+                    }
+                    break;
+
+
+                case IDD_CLOCKDOWN:
+                    sIdx = (SHORT) WinSendDlgItemMsg( hwnd, IDD_CLOCKLIST,
+                                                      LM_QUERYSELECTION,
+                                                      MPFROMSHORT(LIT_CURSOR), 0 );
+                    sCount = (SHORT) WinSendDlgItemMsg( hwnd, IDD_CLOCKLIST,
+                                                        LM_QUERYITEMCOUNT, 0, 0 );
+                    _PmpfF(("Moving item %d/%d down by one", sIdx, sCount ));
+                    if (( sIdx != LIT_NONE ) && ( sIdx+1 < sCount )) {
+                        // move list item down by one
+                        MoveListItem( WinWindowFromID( hwnd, IDD_CLOCKLIST ), sIdx, FALSE );
+                    }
+                    break;
+
 
                 // common buttons
                 case DID_OK:
@@ -1539,15 +1605,10 @@ void CfgPopulateClockList( HWND hwnd, PUCFGDATA pConfig )
     UCHAR  szDesc[ LOCDESC_MAXZ ];
     PSZ    psz;
 
-    /* This is a temporary (and crude) stopover until I can actually implement
-     * a proper city/timezone database with descriptions.
-     */
-
-    for ( i = 0; i < pConfig->usClocks; i++ ) {
-        //sprintf( szDesc, "Clock %u (", i+1 );
-        UniStrFromUcs( pConfig->uconv, szDesc, pConfig->aClockData[i].uzDesc, LOCDESC_MAXZ );
+    for ( i = pConfig->usClocks; i > 0; i-- ) {
+        UniStrFromUcs( pConfig->uconv, szDesc, pConfig->aClockData[i-1].uzDesc, LOCDESC_MAXZ );
         strncat( szDesc, " (", LOCDESC_MAXZ );
-        strncat( szDesc, pConfig->aClockData[i].szTZ, LOCDESC_MAXZ );
+        strncat( szDesc, pConfig->aClockData[i-1].szTZ, LOCDESC_MAXZ );
         psz = strchr( szDesc, ',');
         if ( psz ) {
             *psz = '\0';
@@ -1557,9 +1618,8 @@ void CfgPopulateClockList( HWND hwnd, PUCFGDATA pConfig )
         sIdx = (SHORT) WinSendDlgItemMsg( hwnd, IDD_CLOCKLIST, LM_INSERTITEM,
                                           MPFROMSHORT(LIT_END), MPFROMP(szDesc) );
         WinSendDlgItemMsg( hwnd, IDD_CLOCKLIST, LM_SETITEMHANDLE,
-                           MPFROMSHORT(sIdx), MPFROMLONG((LONG)i) );
+                           MPFROMSHORT(sIdx), MPFROMLONG((LONG)i-1) );
     }
-
 }
 
 
@@ -1571,7 +1631,7 @@ void CfgPopulateClockList( HWND hwnd, PUCFGDATA pConfig )
 void CfgSettingsCommon( HWND hwnd, PUCFGDATA pConfig )
 {
     SHORT aNewOrder[ MAX_CLOCKS ];
-    SHORT count, i;
+    SHORT count, i, j;
     ULONG ul;
 
     if ( (USHORT) WinSendDlgItemMsg( hwnd, IDD_TITLEBAR, BM_QUERYCHECK, 0L, 0L ) == 1 )
@@ -1601,7 +1661,11 @@ void CfgSettingsCommon( HWND hwnd, PUCFGDATA pConfig )
         if ( ul >= MAX_CLOCKS ) return; // simple sanity check
         aNewOrder[ i ] = (SHORT) ul;
     }
-    for ( i = 0; i < count; i++ ) pConfig->aClockOrder[ i ] = aNewOrder[ i ];
+    // The list orders the clocks in reverse order, so...
+    for ( i = 0; i < count; i++ ) {
+        j = count - i - 1;
+        pConfig->aClockOrder[ i ] = aNewOrder[ j ];
+    }
 }
 
 

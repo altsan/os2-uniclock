@@ -46,8 +46,6 @@
 #define IDD_CLOCKLIST               210
 #define IDD_CLOCKUP                 211
 #define IDD_CLOCKDOWN               212
-#define IDD_TOPBOTTOM               213
-#define IDD_BOTTOMTOP               214
 #define IDD_PERCOLUMN               215
 
 #define IDD_CFGCLOCKS               300
