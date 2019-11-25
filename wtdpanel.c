@@ -315,7 +315,7 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             // paint the window contents according to the selected view mode
             GpiSetColor( hps, clrFG );
             if ( pdata->flOptions & WTF_MODE_LARGE )
-                ;// todo
+                WinFillRect( hps, &rcl, clrBG );    // TODO implement large view
             else if ( pdata->flOptions & WTF_MODE_COMPACT )
                 Paint_CompactView( hwnd, hps, rcl, clrBG, clrFG, clrBor, pdata );
             else

@@ -191,6 +191,7 @@ void             SaveSettings( HWND hwnd );
 void             UpdateTime( HWND hwnd );
 BOOL             AddNewClock( HWND hwnd );
 void             DeleteClock( HWND hwnd, PUCLGLOBAL pGlobal, USHORT usClock );
+void             UpdateClockBorders( PUCLGLOBAL pGlobal );
 
 // application configuration
 void             ConfigNotebook( HWND hwnd );
@@ -645,8 +646,8 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
         }
         sprintf( szPrfKey, "%s%02d", PRF_KEY_PRESPARAM, i );
         fLook = LoadIniData( &savedPP, sizeof(savedPP), pGlobal->hIni, PRF_APP_CLOCKDATA, szPrfKey );
-        wtInit.flOptions |= WTF_BORDER_FULL;
-        if ( i ) wtInit.flOptions &= ~WTF_BORDER_BOTTOM;
+        //wtInit.flOptions |= WTF_BORDER_FULL;
+        //if ( i ) wtInit.flOptions &= ~WTF_BORDER_BOTTOM;
         pGlobal->clocks[i] = WinCreateWindow( hwndClient, WT_DISPLAY, "", 0L,
                                               0, 0, 0, 0, hwndClient, HWND_TOP, FIRST_CLOCK+i, &wtInit, NULL );
         if ( ! pGlobal->clocks[i] ) continue;
@@ -672,6 +673,7 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
     pGlobal->usCols = (pGlobal->usPerColumn && pGlobal->usClocks) ?
                         (USHORT)ceil((float)pGlobal->usClocks / pGlobal->usPerColumn ) :
                         1;
+    UpdateClockBorders( pGlobal );
 
     // Hide the titlebar if appropriate
     ToggleTitleBar( pGlobal, WinQueryWindow( hwnd, QW_PARENT ), FALSE );
@@ -752,7 +754,32 @@ void ResizeClocks( HWND hwnd )
             }
             else
                 y += cy;
+
+            //_PmpfF(("Clock %d, position: %d,%d, %dx%d", i, x, y, cx, cy ));
         }
+    }
+}
+
+
+/* ------------------------------------------------------------------------- *
+ * UpdateClockBorders                                                        *
+ *                                                                           *
+ * ------------------------------------------------------------------------- */
+void UpdateClockBorders( PUCLGLOBAL pGlobal )
+{
+    LONG   flOpts;
+    USHORT i, ccount;
+
+    for ( i = 0, ccount = 0; i < pGlobal->usClocks; i++, ccount++ ) {
+        if ( !pGlobal->clocks[i] ) break;
+        flOpts = (ULONG) WinSendMsg( pGlobal->clocks[i], WTD_QUERYOPTIONS, 0, 0 );
+        flOpts |= WTF_BORDER_FULL;
+        // Turn off the bottom border for all but the bottom-most clock in each column
+        if ( pGlobal->usPerColumn && ( ccount >= pGlobal->usPerColumn ))
+            ccount = 0;
+        if ( ccount )
+            flOpts &= ~WTF_BORDER_BOTTOM;
+        WinSendMsg( pGlobal->clocks[i], WTD_SETOPTIONS, MPFROMLONG(flOpts), 0 );
     }
 }
 
@@ -1129,37 +1156,38 @@ BOOL AddNewClock( HWND hwnd )
            ( UniStrToUcs( uconv, uzRes, szRes, SZRES_MAXZ ) == ULS_SUCCESS )))
         UniStrcpy( uzRes, L"UTC");
 
-    // only clock 0 should have a bottom border
+    flOptions = 0;
+/*  UpdateClockBorders() should take care of this now
+    // only bottom-row clocks should have a bottom border
     flOptions = WTF_BORDER_FULL;
     if ( usNew ) flOptions &= ~WTF_BORDER_BOTTOM;
+*/
 
 //    WinSendMsg( hwndClock, WTD_SETINDICATORS, MPFROMP(pGlobal->hptrDay), MPFROMP(pGlobal->hptrNight));
 
     // set default properties
     WinSendMsg( hwndClock, WTD_SETTIMEZONE, MPFROMP(pGlobal->szTZ), MPFROMP(uzRes));
-    WinSendMsg( hwndClock, WTD_SETLOCALE, MPFROMP(pGlobal->szLoc), MPVOID );
-    WinSendMsg( hwndClock, WTD_SETOPTIONS,  MPFROMLONG(flOptions), MPVOID );
+    WinSendMsg( hwndClock, WTD_SETLOCALE, MPFROMP(pGlobal->szLoc), 0L );
+    WinSendMsg( hwndClock, WTD_SETOPTIONS, MPFROMLONG(flOptions), 0L );
+    WinSendMsg( hwndClock, WTD_SETSEPARATOR, MPFROMCHAR(pGlobal->bDescWidth), 0L );
     WinSetPresParam( hwndClock, PP_SEPARATORCOLOR, sizeof(ULONG), &clrS );
     WinSetPresParam( hwndClock, PP_BORDERCOLOR, sizeof(ULONG), &clrB );
     WinSetPresParam( hwndClock, PP_FONTNAMESIZE, 11, "9.WarpSans");
 
-#if 0
-    pGlobal->usClocks++;
-    WinInvalidateRect( hwnd, NULL, TRUE );
-#else
     // now show the properties dialog
     if ( ClockNotebook( hwnd, usNew ) ) {
+        // new clock was accepted, so add it to the GUI
         pGlobal->usClocks++;
         pGlobal->usCols = pGlobal->usPerColumn ?
                             (USHORT)ceil((float)pGlobal->usClocks / pGlobal->usPerColumn ) :
                             1;
+        UpdateClockBorders( pGlobal );
     }
     else {
         // delete the new clock if the user cancelled
         WinDestroyWindow( pGlobal->clocks[usNew] );
         pGlobal->clocks[usNew] = NULLHANDLE;
     }
-#endif
 
     if ( uconv ) UniFreeUconvObject( uconv );
     return TRUE;
@@ -1190,12 +1218,14 @@ void DeleteClock( HWND hwnd, PUCLGLOBAL pGlobal, USHORT usDelete )
                         (USHORT)ceil((float)pGlobal->usClocks / pGlobal->usPerColumn ) :
                         1;
 
+/*
     // The bottom-most clock (clock 0, and only 0) should have a full border.
     // So if we deleted that clock, we change the border on the new clock 0.
     if ( usDelete == 0 )
         WinSendMsg( pGlobal->clocks[0], WTD_SETOPTIONS,
                     MPFROMLONG( WTF_BORDER_FULL ), MPVOID );
-
+*/
+    UpdateClockBorders( pGlobal );
 }
 
 
@@ -1376,6 +1406,7 @@ void ConfigNotebook( HWND hwnd )
             WinSendMsg( pGlobal->clocks[i], WTD_SETSEPARATOR,
                         MPFROMCHAR(pGlobal->bDescWidth), 0L );
         }
+        UpdateClockBorders( pGlobal );
         ResizeClocks( hwnd );
     }
 
