@@ -54,7 +54,7 @@ BEGIN
     IDS_ERROR_CLKDATA                   "Failed to get clock data."
     IDS_ERROR_NOTEBOOK                  "Error populating notebook."
     IDS_ERROR_ZONEINFO                  "Unable to read timezone database (%s)."
-    IDS_ERROR_CLOCKDATA                 "The clock settings format has changed, and the saved configuration is no longer valid.\x0d\x0a\x0aSelect OK to reset your saved clocks to default settings, or Cancel to exit."
+    IDS_ERROR_CLOCKDATA                 "The clock settings format has changed since your configuration was last saved.\x0d\x0a\x0aIf you select OK, the program will to attempt to migrate your settings; otherwise choose Cancel to exit."
     IDS_ERROR_INI_TITLE                 "Reset Configuration"       // max. 32
 END
 

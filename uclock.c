@@ -15,17 +15,13 @@
 //#define US_MIN_HEIGHT           60
 
 #define LOCALE_BUF_MAX          4096    // maximum length of a locale list
-
-#define COUNTRYNAME_MAXZ        100     // maximum length of a country name
 #define PROFILE_MAXZ            32      // maximum length of INI file name (without path)
 #define TZDATA_MAXZ             128     // maximum length of a TZ profile item
 #define ISO6709_MAXZ            16      // maximum length of an ISO 6709 coordinates string
+#define SZRES_MAXZ              256     // maximum length of a generic string resource
 
 // used to indicate an undefined colour presentation parameter
 #define NO_COLOUR_PP            0xFF000000
-
-// Maximum string length...
-#define SZRES_MAXZ              256     // ...of a generic string resource
 
 // Used by the colour dialog
 #define CWN_CHANGE              0x601
@@ -249,6 +245,7 @@ int main( int argc, char *argv[] )
                                       FCF_TASKLIST | FCF_NOBYTEALIGN;
     BOOL      fInitFailure = FALSE;
     PSZ       pszEnv;
+
 
     // Presentation Manager program initialization
     hab = WinInitialize( 0 );
@@ -623,7 +620,9 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
         sprintf( szPrfKey, "%s%02d", PRF_KEY_PANEL, i );
         fData = LoadIniData( &wtInit, sizeof(wtInit), pGlobal->hIni, PRF_APP_CLOCKDATA, szPrfKey );
         if ( !fData ) {
+            // Saved INI data did not match the structure size!
             if ( i == 0 ) {
+                // Warn the user about this (but only for the first clock)
                 WinLoadString( pGlobal->hab, NULLHANDLE, IDS_ERROR_INI_TITLE, 31, szRes2 );
                 WinLoadString( pGlobal->hab, NULLHANDLE, IDS_ERROR_CLOCKDATA, SZRES_MAXZ-1, szRes );
                 if ( WinMessageBox( HWND_DESKTOP, hwnd, szRes, szRes2, 0,
@@ -634,26 +633,36 @@ BOOL WindowSetup( HWND hwnd, HWND hwndClient )
                 }
             }
             memset( &wtInit, 0, sizeof( wtInit ));
-            if ( ! ( uconv &&
-                   ( WinLoadString( pGlobal->hab, NULLHANDLE, IDS_LOC_DEFAULT, SZRES_MAXZ-1, szRes )) &&
-                   ( UniStrToUcs( uconv, wtInit.uzDesc, szRes, SZRES_MAXZ ) == ULS_SUCCESS )))
-                UniStrcpy( wtInit.uzDesc, L"(Current Location)");
+            // First, attempt a recovery by loading the stub data (up to uzDateFmt)
+            // which should be the same in all program versions...
+            if ( PrfQueryProfileSize( pGlobal->hIni, PRF_APP_CLOCKDATA, szPrfKey, &ulVal ) &&
+                 ( ulVal >= sizeof( WTDCSTUB )))
+            {
+                ulVal = sizeof( WTDCSTUB );
+                PrfQueryProfileData( pGlobal->hIni, PRF_APP_CLOCKDATA, szPrfKey, &wtInit, &ulVal );
+            }
+            else {
+                // Hmm, that failed too. Maybe a corrupt INI file?
+                // We can't do anything except revert to default clock settings.
+                if ( ! ( uconv &&
+                       ( WinLoadString( pGlobal->hab, NULLHANDLE, IDS_LOC_DEFAULT, SZRES_MAXZ-1, szRes )) &&
+                       ( UniStrToUcs( uconv, wtInit.uzDesc, szRes, SZRES_MAXZ ) == ULS_SUCCESS )))
+                    UniStrcpy( wtInit.uzDesc, L"(Current Location)");
+                wtInit.flOptions = WTF_DATE_SYSTEM | WTF_TIME_SYSTEM;
+                sprintf( wtInit.szTZ, pGlobal->szTZ );
+                UniStrcpy( wtInit.uzDateFmt, L"%x");
+                UniStrcpy( wtInit.uzTimeFmt, L"%X");
+            }
+            wtInit.bSep = pGlobal->bDescWidth;
             wtInit.cb = sizeof( WTDCDATA );
-            wtInit.flOptions = WTF_DATE_SYSTEM | WTF_TIME_SYSTEM;
-            sprintf( wtInit.szTZ, pGlobal->szTZ );
-            UniStrcpy( wtInit.uzDateFmt, L"%x");
-            UniStrcpy( wtInit.uzTimeFmt, L"%X");
         }
         sprintf( szPrfKey, "%s%02d", PRF_KEY_PRESPARAM, i );
         fLook = LoadIniData( &savedPP, sizeof(savedPP), pGlobal->hIni, PRF_APP_CLOCKDATA, szPrfKey );
-        //wtInit.flOptions |= WTF_BORDER_FULL;
-        //if ( i ) wtInit.flOptions &= ~WTF_BORDER_BOTTOM;
         pGlobal->clocks[i] = WinCreateWindow( hwndClient, WT_DISPLAY, "", 0L,
                                               0, 0, 0, 0, hwndClient, HWND_TOP, FIRST_CLOCK+i, &wtInit, NULL );
         if ( ! pGlobal->clocks[i] ) continue;
 
 //        WinSendMsg( pGlobal->clocks[i], WTD_SETINDICATORS, MPFROMP( pGlobal->hptrDay ), MPFROMP( pGlobal->hptrNight ));
-
         if ( fLook ) {
             if ( savedPP.clrFG != NO_COLOUR_PP )
                 WinSetPresParam( pGlobal->clocks[i], PP_FOREGROUNDCOLOR, sizeof(ULONG), &(savedPP.clrFG) );
@@ -721,7 +730,6 @@ void ResizeClocks( HWND hwnd )
     USHORT     i, ccount;
     ULONG      flOpts;
     LONG       x, y, cx, cy;
-    //LONG       cy2;
 
     pGlobal = WinQueryWindowPtr( hwnd, 0 );
     if (pGlobal && pGlobal->usClocks)
@@ -732,8 +740,6 @@ void ResizeClocks( HWND hwnd )
         y  = rcl.yBottom;
         cx = rcl.xRight / pGlobal->usCols;
         cy = (rcl.yTop - y) / (pGlobal->usPerColumn? pGlobal->usPerColumn: pGlobal->usClocks);
-        //cy2 = (rcl.yTop - y) / pGlobal->usClocks;
-        //cy = cy2 + ((rcl.yTop - y) % pGlobal->usClocks);
 
         ccount = 0;
         for ( i = 0; i < pGlobal->usClocks; i++ ) {
@@ -746,7 +752,6 @@ void ResizeClocks( HWND hwnd )
                 flOpts &= ~WTF_MODE_COMPACT;
             WinSendMsg( pGlobal->clocks[i], WTD_SETOPTIONS, MPFROMLONG(flOpts), MPVOID );
             WinSetWindowPos( pGlobal->clocks[i], HWND_TOP, x, y, cx, cy, SWP_SIZE | SWP_MOVE | SWP_SHOW );
-            //cy = cy2;
             if ( pGlobal->usPerColumn && ( ccount >= pGlobal->usPerColumn )) {
                 ccount = 0;
                 x += cx;
@@ -754,8 +759,6 @@ void ResizeClocks( HWND hwnd )
             }
             else
                 y += cy;
-
-            //_PmpfF(("Clock %d, position: %d,%d, %dx%d", i, x, y, cx, cy ));
         }
     }
 }
@@ -2474,10 +2477,11 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
     ULONG    cb,
              len;
-    CHAR     achLang[ 6 ] = {0},
+    CHAR     achLang[ 4 ] = {0},
+             achDotLang[ 5 ] = {0},
              achProfile[ PROFILE_MAXZ ] = {0},
-             achCountry[ COUNTRYNAME_MAXZ ] = {0};
-    UniChar  aucCountry[ COUNTRYNAME_MAXZ ] = {0};
+             achCountry[ COUNTRY_MAXZ ] = {0};
+    UniChar  aucCountry[ COUNTRY_MAXZ ] = {0};
     PUCHAR   pbuf;
     LONG     lVal;
     SHORT    sIdx,
@@ -2506,6 +2510,7 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             // Open the TZ profile and get all application names
             if ( ! WinLoadString( pProps->hab, 0, IDS_LANG, sizeof(achLang)-1, achLang ))
                 strcpy( achLang, "EN");
+            sprintf( achDotLang, ".%s", achLang );
             sprintf( achProfile, "%s.%s", ZONE_FILE, achLang );
             hTZDB = PrfOpenProfile( pProps->hab, achProfile );
             if ( hTZDB &&
@@ -2526,15 +2531,15 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                                  * (note we pass pszApp as the default, so if the query
                                  * fails, the country name will simply be the country code)
                                  */
-                                PrfQueryProfileString( hTZDB, pszApp, ".EN", pszApp,
-                                                       (PVOID) achCountry, COUNTRYNAME_MAXZ );
+                                PrfQueryProfileString( hTZDB, pszApp, achDotLang, pszApp,
+                                                       (PVOID) achCountry, COUNTRY_MAXZ );
 
                                 // Convert country name from UTF-8 to the current codepage
                                 if ( pProps->uconv && pProps->uconv1208 &&
-                                     !UniStrToUcs( pProps->uconv1208, aucCountry, achCountry, COUNTRYNAME_MAXZ ))
+                                     !UniStrToUcs( pProps->uconv1208, aucCountry, achCountry, COUNTRY_MAXZ ))
                                 {
                                     // If this fails, achCountry will retain the original string
-                                    UniStrFromUcs( pProps->uconv, achCountry, aucCountry, COUNTRYNAME_MAXZ );
+                                    UniStrFromUcs( pProps->uconv, achCountry, aucCountry, COUNTRY_MAXZ );
                                 }
 
                                 // Add country name to listbox
@@ -2997,14 +3002,13 @@ void SelectTimeZone( HWND hwnd, PUCLKPROP pConfig )
 void TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry, PTZPROP pProps )
 {
     PUCHAR  pkeys;
-    CHAR    achZone[ TZDATA_MAXZ ],
+    CHAR    achZone[ REGION_MAXZ ],
             achTZ[ TZSTR_MAXZ ];
-    UniChar aucZone[ TZDATA_MAXZ ];
+    UniChar aucZone[ REGION_MAXZ ];
     PSZ     pszName,
             pszValue;
     ULONG   cb,
             len;
-//    BOOL    fMustKeep;    // TODO for localized zone names marked with '*'
     SHORT   sIdx;
 
     if ( hTZDB == NULLHANDLE ) return;
@@ -3021,26 +3025,25 @@ void TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry, PTZPROP pProps 
                     // Query the value of each key that doesn't start with '.'
                     if ( len && ( *pszKey != '.')) {
                         pszName = pszKey;
-                        // Get the translated & localized region name
-                        PrfQueryProfileString( hTZDB, pszCtry, pszName, "Unknown",
-                                               (PVOID) achZone, TZDATA_MAXZ );
 
-                        /* Now 'pszName' should contain the tzdata zone name, and
-                         * 'achZone' should contain the localized zone name string.
-                         *
-                         * Next, get the TZ string and geo coordinates for this zone.
+                        // Now 'pszName' should contain the tzdata zone name.
+
+                        /* -- For now, just use the original tzdata zone names.
+                        // Get the translated & localized region name (achZone)
+                        PrfQueryProfileString( hTZDB, pszCtry, pszName, "Unknown",
+                                               (PVOID) achZone, REGION_MAXZ );
+                        */
+
+                        // Skip past any leading '*' (we don't use this flag)
+                        if (( len > 1 ) && ( pszName[0] == '*')) {
+                            pszName++;
+                        }
+                        strncpy( achZone, pszName, sizeof(achZone)-1 );
+
+                        /* Next, get the TZ string and geo coordinates for this zone.
                          * These are found in a top-level application under the name
                          * of the tzdata zone.
                          */
-
-                        // Skip past any leading '*'
-//                        fMustKeep = FALSE;
-                        if (( len > 1 ) && ( pszName[0] == '*')) {
-//                            fMustKeep = TRUE;
-                            pszName++;
-                        }
-                        // For now, just use the original tzdata zone names
-                        strncpy( achZone, pszName, TZDATA_MAXZ-1 );
 
                         // Get the TZ variable associated with this zone
                         PrfQueryProfileString( hTZDB, pszName, "TZ", "",
@@ -3052,10 +3055,10 @@ void TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry, PTZPROP pProps 
 
                         // Zone name is UTF-8, so convert it to the current codepage
                         if ( pProps->uconv && pProps->uconv1208 &&
-                             !UniStrToUcs( pProps->uconv1208, aucZone, achZone, TZDATA_MAXZ ))
+                             !UniStrToUcs( pProps->uconv1208, aucZone, achZone, REGION_MAXZ ))
                         {
                             // If this fails, achZone will retain the original string
-                            UniStrFromUcs( pProps->uconv, achZone, aucZone, TZDATA_MAXZ );
+                            UniStrFromUcs( pProps->uconv, achZone, aucZone, REGION_MAXZ );
                         }
 
                         // Add zone name to listbox
@@ -3077,7 +3080,7 @@ void TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry, PTZPROP pProps 
                         // We save the TZ variable string and the coordinates
                         strncpy( pszValue, achTZ, TZSTR_MAXZ );
                         PrfQueryProfileString( hTZDB, pszName, "Coordinates", "+0+0",
-                                               (PVOID) achZone, TZDATA_MAXZ );
+                                               (PVOID) achZone, sizeof(achZone)-1 );
 
                         // Concatenate the two together separated by tab
                         if (( strlen( pszValue ) + strlen( achZone ) + 1 ) < TZDATA_MAXZ ) {
