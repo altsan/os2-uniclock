@@ -56,6 +56,8 @@
 #define TZSTR_MAXZ              64      // ...of a TZ variable string
 #define STRFT_MAXZ              64      // ...of a (Uni)strftime format string
 #define PRF_NTLDATA_MAXZ        32      // ...of a data item in PM_National
+#define COUNTRY_MAXZ            64      // ...of a country name
+#define REGION_MAXZ             64      // ...of a timezone/region/city name
 
 
 
@@ -91,10 +93,10 @@
  * 0x00000000
  *   ³³³³³³³À display mode/size (0 == default size)
  *   ³³³³³³ÀÄ border lines      (0 == no border)
- *   ³³³³³ÀÄÄ clock style       (0 == use current font)
+ *   ³³³³³ÀÄÄ render style      (0 == digital clock, default font, GPI rendering)
  *   ³³³³ÀÄÄÄ place settings    (0 == no location info available)
  *   ³³³ÀÄÄÄÄ time display      (0 == use locale's standard time format)
- *   ³³ÀÄÄÄÄÄ alt. time display (0 == use locale's alternate time format, or 24hr if none)
+ *   ³³ÀÄÄÄÄÄ TBD
  *   ³ÀÄÄÄÄÄÄ date display      (0 == use locale's standard date format)
  *   ÀÄÄÄÄÄÄÄ long date display (0 == use locale's long date format)
  */
@@ -109,7 +111,6 @@
 #define WTF_BORDER_FULL         0xF0        // draw all four borders
 //#define WTF_CLOCK_BMP1          0x100       // * use style-1 bitmaps for clock numbers
 //#define WTF_CLOCK_BMP2          0x200       // * use style-2 bitmaps for clock numbers
-//#define WTF_CLOCK_BMPCUSTOM     0x400       // * use custom bitmaps for clock numbers
 #define WTF_SPECIAL_CAIRO       0x400       // * use Cairo for rendering instead of standard GPI
 #define WTF_SPECIAL_ANALOG      0x800       // * use an analog-style clock
 #define WTF_PLACE_HAVECOORD     0x1000      // we have geographic coordinates for this clock
@@ -119,9 +120,6 @@
 #define WTF_TIME_SYSTEM         0x20000     // use system default time format
 #define WTF_TIME_CUSTOM         0x40000     // use a customized time format
 #define WTF_TIME_SHORT          0x80000     // don't show seconds in time (ignored for custom & alt)
-//#define WTF_ATIME_SYSTEM        0x200000    // use system default time format
-//#define WTF_ATIME_CUSTOM        0x400000    // use a customized time format
-//#define WTF_ATIME_SHORT         0x800000    // don't show seconds in time (ignored for custom & alt)
 #define WTF_DATE_ALT            0x1000000   // use locale's alternate date format
 #define WTF_DATE_SYSTEM         0x2000000   // use system default date format
 #define WTF_DATE_CUSTOM         0x4000000   // use a customized date format
@@ -180,7 +178,7 @@ typedef struct _PM_National_Data {
 
 // Geographical coordinates (latitude & longitude)
 // Don't bother with seconds - even at its widest point, one minute is less
-// than 2km, and that should be more than precise enough for our purposes.
+// than 2 km, and that should be more than precise enough for our purposes.
 typedef struct _Geo_Coordinates {
     SHORT       sLatitude;          // degrees latitude (-90 <-> 90)
     BYTE        bLaMin;             // minutes latitude (0-60)
@@ -200,11 +198,24 @@ typedef struct _WTDisplay_CData {
     UniChar       uzDesc[ LOCDESC_MAXZ ];   // timezone/place description
     UniChar       uzTimeFmt[ STRFT_MAXZ ];  // UniStrftime time format string
     UniChar       uzDateFmt[ STRFT_MAXZ ];  // UniStrftime date format string
-//    UniChar       uzTimeFmt2[ STRFT_MAXZ ]; // UniStrftime alternate time format string
-//    UniChar       uzDateFmt2[ STRFT_MAXZ ]; // UniStrftime alternate date format string
     BYTE          bSep;                     // width of description area as % of total width
+    UniChar       uzTZCtry[ COUNTRY_MAXZ ]; // last selected timezone country
+    UniChar       uzTZRegn[ REGION_MAXZ ];  // last selected timezone region
 } WTDCDATA, *PWTDCDATA;
 
+// Stub version of the above, used for fallback if we have a size mismatch
+// with the saved INI data; these fields should always be present regardless
+// of program version.
+typedef struct _WTDisplay_CStub {
+    USHORT        cb;                       // size of this data structure
+    ULONG         flOptions;                // option settings
+    CHAR          szTZ[ TZSTR_MAXZ ];       // timezone (TZ string)
+    CHAR          szLocale[ ULS_LNAMEMAX ]; // formatting locale name
+    GEOCOORD      coordinates;              // geographic coordinates
+    UniChar       uzDesc[ LOCDESC_MAXZ ];   // timezone/place description
+    UniChar       uzTimeFmt[ STRFT_MAXZ ];  // UniStrftime time format string
+    UniChar       uzDateFmt[ STRFT_MAXZ ];  // UniStrftime date format string
+} WTDCSTUB, *PWTDCSTUB;
 
 // Full control data for the world-time display
 typedef struct _WTDisplay_Data {
@@ -221,21 +232,17 @@ typedef struct _WTDisplay_Data {
     CHAR          szDesc[ LOCDESC_MAXZ ];   // timezone/place description (codepage version)
     CHAR          szTime[ TIMESTR_MAXZ ];   // formatted time string      (codepage version)
     CHAR          szDate[ DATESTR_MAXZ ];   // formatted date string      (codepage version)
-//    CHAR          szTime2[ TIMESTR_MAXZ ];  // formatted alt. time string (codepage version)
-//    CHAR          szDate2[ DATESTR_MAXZ ];  // formatted alt. date string (codepage version)
     CHAR          szSunR[ TIMESTR_MAXZ ];   // formatted sunrise time     (codepage version)
     CHAR          szSunS[ TIMESTR_MAXZ ];   // formatted sunset time      (codepage version)
     UniChar       uzDesc[ LOCDESC_MAXZ ];   // timezone/place description (Unicode version)
     UniChar       uzTime[ TIMESTR_MAXZ ];   // formatted time string      (Unicode version)
     UniChar       uzDate[ DATESTR_MAXZ ];   // formatted date string      (Unicode version)
-//    UniChar       uzTime2[ TIMESTR_MAXZ ];  // formatted alt. time string (Unicode version)
-//    UniChar       uzDate2[ DATESTR_MAXZ ];  // formatted alt. string      (Unicode version)
     UniChar       uzSunR[ TIMESTR_MAXZ ];   // formatted sunrise time     (Unicode version)
     UniChar       uzSunS[ TIMESTR_MAXZ ];   // formatted sunset time      (Unicode version)
     UniChar       uzTimeFmt[ STRFT_MAXZ ];  // UniStrftime time format string
     UniChar       uzDateFmt[ STRFT_MAXZ ];  // UniStrftime date format string
-//    UniChar       uzTimeFmt2[ STRFT_MAXZ ]; // UniStrftime alt. time format string
-//    UniChar       uzDateFmt2[ STRFT_MAXZ ]; // UniStrftime alt. date format string
+    UniChar       uzTZCtry[ COUNTRY_MAXZ ]; // last selected timezone country
+    UniChar       uzTZRegn[ REGION_MAXZ ];  // last selected timezone region
     BOOL          fUnicode;                 // using Unicode font?
     FATTRS        faNormal;                 // attributes of normal display font
     FATTRS        faTime;                   // attributes of time display font
