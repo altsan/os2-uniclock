@@ -85,20 +85,20 @@ the clock panel.
 clock has been configured. The exact format of the time display depends on
 the clock's localization settings.
 
-:p.If geographic coordinates are set and enabled for this clock, then a
-graphical day/night indicator will also be shown in this area, to the
-right of the time display. This indicates whether it is currently daytime
-or night-time in the configured location.
+:p.If geographic coordinates are enabled for this clock, then a graphical
+day/night indicator will also be shown in this area, to the right of the time
+display. This indicates whether it is currently daytime or night-time in the
+configured location.
 
 :p.:hp5.Bottom Area:ehp5.
 :p.The bottom area normally shows the current date in the configured timezone.
 Like the time display, the date format depends on the clock's localization
 settings.
 
-:p.If geographic coordinates are set and enabled for this clock, then clicking
-on the text in this area will toggle the display between showing the current
-date, and showing the current date's sunrise and sunset times in the
-configured location.
+:p.If geographic coordinates are enabled for this clock, then clicking on the
+text in this area will toggle the display between showing the current date,
+and showing the current date's sunrise and sunset times in the configured
+location.
 
 
 .* ---------------------------------------------------------------------------
@@ -120,10 +120,10 @@ will switch between the two.
 :p.The exact time and date formats will depend, as always, on the clock's
 localization settings.
 
-:p.If geographic coordinates are set and enabled for this clock, then a
-graphical day/night indicator will also be shown in this area, to the
-right of the time or date. This indicates whether it is currently daytime
-or night-time in the configured location.
+:p.If geographic coordinates are enabled for this clock, then a graphical
+day/night indicator will also be shown in this area, to the right of the time
+or date. This indicates whether it is currently daytime or night-time in the
+configured location.
 
 
 .* ---------------------------------------------------------------------------
@@ -302,8 +302,11 @@ percentage of the clock panel width.
 :dd.This allows you to control the arrangement of clock panels into columns.
 By default (value 0), all clocks are arranged in a single column, with the
 first clock at the bottom.
-:p.The list box shows a summary of all currently-defined clock panels. At
-present, this is for reference only.
+:p.The list box shows a summary of all currently-defined clock panels. Here
+you can change the order of the clock panels. Clocks are shown in the same
+order in which they would appear in a single-column view, with clock 1 at
+the bottom and the highest-numbered clock at the top. The up and down
+pushbuttons will move the currently-selected clock up or down in the list.
 :edl.
 
 
@@ -327,5 +330,15 @@ GNU General Public License for more details.
 :p.You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+:p.See :link reftype=hd refid=license.the following section:elink. for the
+full text of the GNU General Public License.
+
+:p.Universal Clock source code repository&colon. https&colon.//github.com/altsan/os2-uniclock
+
+
+.* ------------------------------------------------------------------------
+:h2 x=left y=bottom width=100% height=100% id=license res=991.GNU General Public License
+.im gplv2.ipf
 
 :euserdoc.
