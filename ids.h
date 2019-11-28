@@ -61,11 +61,6 @@
 #define IDD_TIMESHORT               312
 #define IDD_TIMESTR                 314
 #define IDD_DATEFMT                 315
-#define IDD_TIMEFMT2                316
-#define IDD_TIMESTR2                317
-#define IDD_TIMESHORT2              318
-#define IDD_DATEFMT2                319
-#define IDD_DATESTR2                320
 #define IDD_USECOORDINATES          321
 
 #define IDD_CFGPRES                 400
@@ -152,7 +147,7 @@
 
 // Help subtable IDs
 
-#define HSTB_MAIN                   20000
+#define HSTB_CONFIG                 20001
 
 
 

@@ -143,6 +143,8 @@ typedef struct _TZ_Properties {
     HMQ         hmq;                        // main message queue
     CHAR        achDesc[ LOCDESC_MAXZ ];    // current description
     CHAR        achTZ[ TZSTR_MAXZ ];        // TZ variable string
+    CHAR        achCtry[ COUNTRY_MAXZ ];    // current country selection
+    CHAR        achRegn[ REGION_MAXZ ];     // current region/city selection
     GEOCOORD    coordinates;                // geographic coordinates
     UconvObject uconv;                      // Unicode (UCS-2) conversion object
     UconvObject uconv1208;                  // UTF-8 conversion object
@@ -1596,7 +1598,6 @@ MRESULT EXPENTRY CfgCommonPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2
                                                       MPFROMSHORT(LIT_CURSOR), 0 );
                     sCount = (SHORT) WinSendDlgItemMsg( hwnd, IDD_CLOCKLIST,
                                                         LM_QUERYITEMCOUNT, 0, 0 );
-                    _PmpfF(("Moving item %d/%d down by one", sIdx, sCount ));
                     if (( sIdx != LIT_NONE ) && ( sIdx+1 < sCount )) {
                         // move list item down by one
                         MoveListItem( WinWindowFromID( hwnd, IDD_CLOCKLIST ), sIdx, FALSE );
@@ -1613,6 +1614,7 @@ MRESULT EXPENTRY CfgCommonPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2
                 case DID_CANCEL:
                     WinPostMsg( WinQueryWindow(hwnd, QW_OWNER), WM_COMMAND, mp1, mp2 );
                     break;
+
 
                 default: break;
             }
@@ -1789,13 +1791,14 @@ BOOL ClockNotebook( HWND hwnd, USHORT usNumber )
     if ( props.bChanged ) {
 
         // configuration settings
-
         WinSendMsg( pGlobal->clocks[usNumber], WTD_SETTIMEZONE,
                     MPFROMP(props.clockData.szTZ), MPFROMP(props.clockData.uzDesc));
         WinSendMsg( pGlobal->clocks[usNumber], WTD_SETOPTIONS,
                     MPFROMLONG(props.clockData.flOptions | flBorders), MPVOID );
         WinSendMsg( pGlobal->clocks[usNumber], WTD_SETLOCALE,
                     MPFROMP(props.clockData.szLocale), MPVOID );
+        WinSendMsg( pGlobal->clocks[usNumber], WTD_SETCOUNTRYZONE,
+                    MPFROMP(props.clockData.uzTZCtry), MPFROMP(props.clockData.uzTZRegn));
         if ( props.clockData.flOptions & WTF_PLACE_HAVECOORD )
             WinSendMsg( pGlobal->clocks[usNumber], WTD_SETCOORDINATES,
                         MPFROM2SHORT(props.clockData.coordinates.sLatitude,
@@ -2032,16 +2035,10 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
             WinSendDlgItemMsg( hwnd, IDD_TIMEFMT,  LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLocDef) );
             WinSendDlgItemMsg( hwnd, IDD_TIMEFMT,  LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLocAlt) );
             WinSendDlgItemMsg( hwnd, IDD_TIMEFMT,  LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szCustom) );
-//            WinSendDlgItemMsg( hwnd, IDD_TIMEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szSysDef) );
-//            WinSendDlgItemMsg( hwnd, IDD_TIMEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLocDef) );
-//            WinSendDlgItemMsg( hwnd, IDD_TIMEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szCustom) );
             WinSendDlgItemMsg( hwnd, IDD_DATEFMT,  LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szSysDef) );
             WinSendDlgItemMsg( hwnd, IDD_DATEFMT,  LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLocDef) );
             WinSendDlgItemMsg( hwnd, IDD_DATEFMT,  LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLocAlt) );
             WinSendDlgItemMsg( hwnd, IDD_DATEFMT,  LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szCustom) );
-//            WinSendDlgItemMsg( hwnd, IDD_DATEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szSysDef) );
-//            WinSendDlgItemMsg( hwnd, IDD_DATEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLocDef) );
-//            WinSendDlgItemMsg( hwnd, IDD_DATEFMT2, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szCustom) );
 
             // Set the current values
             WinSetDlgItemText( hwnd, IDD_TZDISPLAY, pConfig->clockData.szTZ );
@@ -2086,19 +2083,6 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
             if ( sIdx < 2 && pConfig->clockData.flOptions & WTF_TIME_SHORT )
                 WinSendDlgItemMsg( hwnd, IDD_TIMESHORT, BM_SETCHECK, MPFROMSHORT(1), MPVOID );
 
-/*
-            // time format controls (alternate)
-            if ( pConfig->clockData.flOptions & WTF_ATIME_SYSTEM )
-                sIdx = 0;
-            else if ( pConfig->clockData.flOptions & WTF_ATIME_CUSTOM )
-                sIdx = 2;
-            else sIdx = 1;
-            WinSendDlgItemMsg( hwnd, IDD_TIMEFMT2, LM_SELECTITEM,
-                               MPFROMSHORT(sIdx), MPFROMSHORT(TRUE) );
-            if ( sIdx < 2 && pConfig->clockData.flOptions & WTF_ATIME_SHORT )
-                WinSendDlgItemMsg( hwnd, IDD_TIMESHORT2, BM_SETCHECK, MPFROMSHORT(1), MPVOID );
-*/
-
             // date format controls (primary)
             if ( pConfig->uconv &&
                  ( UniStrFromUcs( pConfig->uconv, szFormat,
@@ -2115,16 +2099,6 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
                 sIdx = 1;
             WinSendDlgItemMsg( hwnd, IDD_DATEFMT, LM_SELECTITEM,
                                MPFROMSHORT(sIdx), MPFROMSHORT(TRUE) );
-/*
-            // date format controls (secondary)
-            if ( pConfig->clockData.flOptions & WTF_LONGDATE_SYSTEM )
-                sIdx = 0;
-            else if ( pConfig->clockData.flOptions & WTF_LONGDATE_CUSTOM )
-                sIdx = 2;
-            else sIdx = 1;
-            WinSendDlgItemMsg( hwnd, IDD_DATEFMT2, LM_SELECTITEM,
-                               MPFROMSHORT(sIdx), MPFROMSHORT(TRUE) );
-*/
             return (MRESULT) FALSE;
 
 
@@ -2161,16 +2135,7 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
                         WinShowWindow( WinWindowFromID(hwnd, IDD_TIMESTR), (sIdx == 3)? TRUE: FALSE );
                     }
                     break;
-/*
-                case IDD_TIMEFMT2:
-                    if ( SHORT2FROMMP(mp1) == LN_SELECT ) {
-                        hwndLB = (HWND) mp2;
-                        sIdx = (SHORT) WinSendMsg( hwndLB, LM_QUERYSELECTION, MPFROMSHORT(LIT_FIRST), 0 );
-                        WinShowWindow( WinWindowFromID(hwnd, IDD_TIMESHORT2), (sIdx < 2)? TRUE: FALSE );
-                        WinShowWindow( WinWindowFromID(hwnd, IDD_TIMESTR2), (sIdx == 2)? TRUE: FALSE );
-                    }
-                    break;
-*/
+
                 case IDD_DATEFMT:
                     if ( SHORT2FROMMP(mp1) == LN_SELECT ) {
                         hwndLB = (HWND) mp2;
@@ -2178,15 +2143,7 @@ MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 
                         WinShowWindow( WinWindowFromID(hwnd, IDD_DATESTR), (sIdx == 3)? TRUE: FALSE );
                     }
                     break;
-/*
-                case IDD_DATEFMT2:
-                    if ( SHORT2FROMMP(mp1) == LN_SELECT ) {
-                        hwndLB = (HWND) mp2;
-                        sIdx = (SHORT) WinSendMsg( hwndLB, LM_QUERYSELECTION, MPFROMSHORT(LIT_FIRST), 0 );
-                        WinShowWindow( WinWindowFromID(hwnd, IDD_DATESTR2), (sIdx == 2)? TRUE: FALSE );
-                    }
-                    break;
-*/
+
                 case IDD_USECOORDINATES:
                     WinEnableControl( hwnd, IDD_COORDINATES,
                                       (BOOL)WinQueryButtonCheckstate( hwnd, IDD_USECOORDINATES ));
@@ -2374,6 +2331,11 @@ BOOL ClkSettingsClock( HWND hwnd, PUCLKPROP pConfig )
     WinQueryDlgItemText( hwnd, IDD_CITYLIST, LOCDESC_MAXZ, szDesc );
     UniStrToUcs( pConfig->uconv, settings.uzDesc, szDesc, LOCDESC_MAXZ );
 
+    // country/region names are stored in the clockData structure,
+    // so save those before we overwrite it
+    UniStrcpy( settings.uzTZCtry, pConfig->clockData.uzTZCtry );
+    UniStrcpy( settings.uzTZRegn, pConfig->clockData.uzTZRegn );
+
     // geographic coordinates
     memcpy( &(settings.coordinates), &(pConfig->clockData.coordinates), sizeof(GEOCOORD) );
     if ( WinQueryButtonCheckstate( hwnd, IDD_USECOORDINATES ) != 0 )
@@ -2490,6 +2452,7 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
              pszTZ,
              pszCoord;
     GEOCOORD gc;
+    BOOL     fGotDB = FALSE;
 
 
     switch ( msg ) {
@@ -2516,12 +2479,14 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             if ( hTZDB &&
                  PrfQueryProfileSize( hTZDB, NULL, NULL, &cb ) && cb )
             {
+                // TODO move this into a function, ugh
                 pbuf = (PUCHAR) calloc( cb, sizeof(BYTE) );
                 if ( pbuf ) {
                     if ( PrfQueryProfileData( hTZDB, NULL, NULL, pbuf, &cb ) && cb )
                     {
                         PSZ pszApp = (PSZ) pbuf;    // Current application name
 
+                        fGotDB = TRUE;
                         do {
                             // See if this is a country code (two-letter acronym)
                             if ((( len = strlen( pszApp )) == 2 ) &&
@@ -2551,15 +2516,6 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                              }
                             pszApp += len + 1;
                         } while ( len );
-
-                        sIdx = (SHORT) WinSendDlgItemMsg( hwnd, IDD_TZCOUNTRY,
-                                                          LM_SEARCHSTRING,
-                                                          MPFROM2SHORT( LSS_CASESENSITIVE | LSS_PREFIX, LIT_FIRST ),
-                                                          MPFROMP( pProps->achDesc ));
-                        // if (( sIdx == LIT_NONE ) || ( sIdx == LIT_ERROR ))
-                        //     sIdx = 0;
-                        WinSendDlgItemMsg( hwnd, IDD_TZCOUNTRY, LM_SELECTITEM,
-                                           MPFROMSHORT( sIdx ), MPFROMSHORT( TRUE ));
                     }
                     free( pbuf );
                 }
@@ -2567,6 +2523,25 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             else {
                 ErrorMessage( hwnd, IDS_ERROR_ZONEINFO );
             }
+
+            // Try to select the saved city, if any
+            if ( fGotDB ) {
+                sIdx = LIT_NONE;
+                if ( pProps->achCtry[0] )
+                    sIdx = (SHORT) \
+                               WinSendDlgItemMsg( hwnd, IDD_TZCOUNTRY, LM_SEARCHSTRING,
+                                                  MPFROM2SHORT( LSS_PREFIX, LIT_FIRST ),
+                                                  MPFROMP( pProps->achCtry ));
+                // Failing that, do a search on the description
+                if (( sIdx == LIT_NONE ) || ( sIdx == LIT_ERROR ))
+                    sIdx = (SHORT) \
+                               WinSendDlgItemMsg( hwnd, IDD_TZCOUNTRY, LM_SEARCHSTRING,
+                                                  MPFROM2SHORT( LSS_PREFIX, LIT_FIRST ),
+                                                  MPFROMP( pProps->achDesc ));
+                WinSendDlgItemMsg( hwnd, IDD_TZCOUNTRY, LM_SELECTITEM,
+                                   MPFROMSHORT( sIdx ), MPFROMSHORT( TRUE ));
+            }
+
             /* Set the current TZ string value (we do this after selecting the
              * default country+zone so that the selection event doesn't reset
              * the value to the default for that zone - in case it's been
@@ -2593,6 +2568,9 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             switch( SHORT1FROMMP( mp1 )) {
                 case DID_OK:
                     WinQueryDlgItemText( hwnd, IDD_TZVALUE, LOCDESC_MAXZ, pProps->achTZ );
+                    WinQueryDlgItemText( hwnd, IDD_TZCOUNTRY, COUNTRY_MAXZ, pProps->achCtry );
+                    WinQueryDlgItemText( hwnd, IDD_TZNAME, REGION_MAXZ, pProps->achRegn );
+
                     WinSendDlgItemMsg( hwnd, IDD_TZLAT_DEGS, SPBM_QUERYVALUE,
                                        MPFROMP( &lVal ), MPFROM2SHORT( 0, SPBQ_UPDATEIFVALID ));
                     pProps->coordinates.sLatitude = lVal;
@@ -2643,6 +2621,21 @@ MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                         if ( pszData ) {
                             // Repopulate the timezone list for the new country
                             TZPopulateCountryZones( hwnd, hTZDB, pszData, pProps );
+
+                            // Try to select the saved region, if any
+                            if ( pProps->achRegn[0] )
+                                sIdx = (SHORT) \
+                                           WinSendDlgItemMsg( hwnd, IDD_TZNAME, LM_SEARCHSTRING,
+                                                              MPFROM2SHORT( LSS_PREFIX, LIT_FIRST ),
+                                                              MPFROMP( pProps->achRegn ));
+                            // Failing that, do a substring search on the description
+                            if (( sIdx == LIT_NONE ) || ( sIdx == LIT_ERROR ))
+                                sIdx = (SHORT) \
+                                           WinSendDlgItemMsg( hwnd, IDD_TZNAME, LM_SEARCHSTRING,
+                                                              MPFROM2SHORT( LSS_SUBSTRING, LIT_FIRST ),
+                                                              MPFROMP( pProps->achDesc ));
+                            WinSendDlgItemMsg( hwnd, IDD_TZNAME, LM_SELECTITEM,
+                                               MPFROMSHORT( sIdx ), MPFROMSHORT( TRUE ));
                         }
                     }
                     break;
@@ -2964,24 +2957,43 @@ void SelectTimeZone( HWND hwnd, PUCLKPROP pConfig )
     tzp.hab = pConfig->hab;
     tzp.hmq = pConfig->hmq;
     tzp.uconv = pConfig->uconv;
+    tzp.achCtry[0] = '\0';
+    tzp.achRegn[0] = '\0';
 
-    memcpy( &(tzp.coordinates), &(pConfig->clockData.coordinates), sizeof(GEOCOORD) );
+    memcpy( &(tzp.coordinates), &(pConfig->clockData.coordinates),
+            sizeof(GEOCOORD) );
 
     if ( UniCreateUconvObject( (UniChar *) L"IBM-1208@map=display,path=no",
                                &(tzp.uconv1208) ) != 0 )
         tzp.uconv1208 = NULL;
 
+    // Get the current values
     WinQueryDlgItemText( hwnd, IDD_CITYLIST, LOCDESC_MAXZ, tzp.achDesc );
     WinQueryDlgItemText( hwnd, IDD_TZDISPLAY, LOCDESC_MAXZ, tzp.achTZ );
+
+    if ( pConfig->clockData.uzTZCtry[0] )
+        UniStrFromUcs( tzp.uconv, tzp.achCtry,
+                       pConfig->clockData.uzTZCtry, sizeof(tzp.achCtry)-1 );
+    if ( pConfig->clockData.uzTZRegn[0] )
+        UniStrFromUcs( tzp.uconv, tzp.achRegn,
+                       pConfig->clockData.uzTZRegn, sizeof(tzp.achRegn)-1 );
 
     // Show & process the dialog
     WinDlgBox( HWND_DESKTOP, hwnd, (PFNWP) TZDlgProc, 0, IDD_TIMEZONE, &tzp );
 
     // Update the settings
     WinSetDlgItemText( hwnd, IDD_TZDISPLAY, tzp.achTZ );
-    memcpy( &(pConfig->clockData.coordinates), &(tzp.coordinates), sizeof(GEOCOORD) );
+    memcpy( &(pConfig->clockData.coordinates), &(tzp.coordinates),
+            sizeof(GEOCOORD) );
     UnParseTZCoordinates( achCoord, pConfig->clockData.coordinates );
     WinSetDlgItemText( hwnd, IDD_COORDINATES, achCoord );
+
+    if ( tzp.achCtry[0] )
+        UniStrToUcs( tzp.uconv, pConfig->clockData.uzTZCtry,
+                     tzp.achCtry, COUNTRY_MAXZ );
+    if ( tzp.achRegn[0] )
+        UniStrToUcs( tzp.uconv, pConfig->clockData.uzTZRegn,
+                     tzp.achRegn, REGION_MAXZ );
 
     if ( tzp.uconv1208 ) UniFreeUconvObject( tzp.uconv1208 );
 }
@@ -3049,9 +3061,8 @@ void TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry, PTZPROP pProps 
                         PrfQueryProfileString( hTZDB, pszName, "TZ", "",
                                                (PVOID) achTZ, TZSTR_MAXZ );
 
-                        // Filter out zones with no TZ variable (TODO and duplicate names)
-//                        if ( !fMustKeep )
-                            if ( strlen( achZone ) == 0 ) continue;
+                        // Filter out zones with no TZ variable
+                        if ( strlen( achZone ) == 0 ) continue;
 
                         // Zone name is UTF-8, so convert it to the current codepage
                         if ( pProps->uconv && pProps->uconv1208 &&
@@ -3077,7 +3088,7 @@ void TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry, PTZPROP pProps 
                         // freed when the list is cleared (in TZDlgProc).
                         pszValue = malloc( TZDATA_MAXZ );
 
-                        // We save the TZ variable string and the coordinates
+                        // Save the TZ variable string and get the coordinates
                         strncpy( pszValue, achTZ, TZSTR_MAXZ );
                         PrfQueryProfileString( hTZDB, pszName, "Coordinates", "+0+0",
                                                (PVOID) achZone, sizeof(achZone)-1 );
@@ -3088,7 +3099,7 @@ void TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry, PTZPROP pProps 
                             strncat( pszValue, achZone, TZDATA_MAXZ-1 );
                         }
 
-                        // Save the TZ var and coordinates in the item data handle
+                        // Save the TZ+coordinates string in the item data handle
                         WinSendDlgItemMsg( hwnd, IDD_TZNAME, LM_SETITEMHANDLE,
                                            MPFROMSHORT( sIdx ),
                                            MPFROMP( pszValue ));

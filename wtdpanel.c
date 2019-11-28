@@ -46,8 +46,7 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
     RECTL       rcl;                    // control's window area
     POINTL      ptl;                    // current drawing position
     POINTS      pts;                    // current pointer position
-    CHAR        szEnv[ TZSTR_MAXZ+4 ] = {0},  // used to write TZ environment
-                ch;                     // character value for WM_CHAR event
+    CHAR        szEnv[ TZSTR_MAXZ+4 ] = {0};  // used to write TZ environment
     USHORT      fsFlags;                // WM_CHAR flags
     USHORT      usVK;                   // WM_CHAR virtual-key code
     LONG        clrBG, clrFG, clrBor;   // current fore/back/border colours
@@ -56,7 +55,8 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                 rc;
     struct tm  *ltime;                  // local time structure
     time_t      ctime;                  // passed time value
-    UniChar    *puzPlaceName;           // passed place name
+    UniChar    *puzPlaceName,           // passed place name
+               *puzCountry;             // passed country name
     PSZ         pszTZ,                  // passed TZ variable
                 pszLocaleName;          // passed locale name
 
@@ -86,6 +86,8 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                                pinit->uzDesc, LOCDESC_MAXZ );                    ;
                 UniStrcpy( pdata->uzTimeFmt, pinit->uzTimeFmt );
                 UniStrcpy( pdata->uzDateFmt, pinit->uzDateFmt );
+                UniStrcpy( pdata->uzTZCtry, pinit->uzTZCtry );
+                UniStrcpy( pdata->uzTZRegn, pinit->uzTZRegn );
                 if ( pinit->szLocale[0] ) {
                     rc = UniCreateLocaleObject( UNI_MBS_STRING_POINTER, pinit->szLocale, &(pdata->locale) );
                     if ( rc != ULS_SUCCESS )
@@ -189,7 +191,7 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             // we are only interested in virtual keys
             if (( fsFlags & KC_VIRTUALKEY ) != KC_VIRTUALKEY ) break;
 
-            ch   = (CHAR)( SHORT1FROMMP( mp2 ) & 0xFF );
+            //ch   = (CHAR)( SHORT1FROMMP( mp2 ) & 0xFF );
             usVK = SHORT2FROMMP( mp2 );
             //_PmpfF(("Key: %u", usVK ));
 
@@ -444,8 +446,8 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
         /* .................................................................. *
          * WTD_SETTIMEZONE                                                    *
          *                                                                    *
-         *   - mp1 (PSZ)         - New timezone (formatted TZ variable)       *
-         *   - mp2 (UniChar *)   - Human-readable timezone (or city) name     *
+         *   - mp1 (PSZ)       - New timezone (formatted TZ variable)         *
+         *   - mp2 (UniChar *) - Human-readable timezone/place description    *
          *                                                                    *
          * Set or change the location & timezone used by this clock display.  *
          *                                                                    *
@@ -467,9 +469,32 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
 
         /* .................................................................. *
+         * WTD_SETCOUNTRYZONE                                                 *
+         *                                                                    *
+         *   - mp1 (UniChar *) - Country name                                 *
+         *   - mp2 (UniChar *) - Zone (region or city) name                   *
+         *                                                                    *
+         * Define names for the currently-selected country and zone. These    *
+         * are not used by the WTDPanel control but are provided so that the  *
+         * application can easily store saved or default selection values.    *
+         *                                                                    *
+         * .................................................................. */
+        case WTD_SETCOUNTRYZONE:
+            pdata = WinQueryWindowPtr( hwnd, 0 );
+            puzCountry   = (UniChar *) mp1;
+            puzPlaceName = (UniChar *) mp2;
+            if ( puzCountry )
+                UniStrncpy( pdata->uzTZCtry, puzCountry, COUNTRY_MAXZ-1 );
+            if ( puzPlaceName )
+                UniStrncpy( pdata->uzTZRegn, puzPlaceName, REGION_MAXZ-1 );
+            WinInvalidateRect( hwnd, NULL, FALSE);
+            return (MRESULT) 0;
+
+
+        /* .................................................................. *
          * WTD_SETLOCALE                                                      *
          *                                                                    *
-         *   - mp1 (PSZ)         - Locale name (as used by ULS)               *
+         *   - mp1 (PSZ)      - Locale name (as used by ULS)                  *
          *   - mp2 (not used)                                                 *
          *                                                                    *
          * Set or change the formatting locale used for this clock display.   *
@@ -582,28 +607,6 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
 
         /* .................................................................. *
-         * WTD_SETALTFORMATS                                                  *
-         *                                                                    *
-         *   - mp1 (UniChar *)  - New UniStrftime time format specifier       *
-         *   - mp2 (UniChar *)  - New UniStrftime date format specifier       *
-         *                                                                    *
-         * Set the custom UniStrftime formatting strings for alternate date   *
-         * and time display.  These strings are only set if WTF_ATIME_CUSTOM  *
-         * and/or WTF_ADATE_CUSTOM are set in the WTDATA flOptions field.  To *
-         * set only one of the two strings, simply specify MPVOID (NULL) for  *
-         * the other and it will not be changed.                              *
-         *                                                                    *
-         * .................................................................. *
-        case WTD_SETALTFORMATS:
-            pdata = WinQueryWindowPtr( hwnd, 0 );
-            if ( mp1 && ( pdata->flOptions & WTF_ATIME_CUSTOM ))
-                UniStrncpy( pdata->uzTimeFmt2, (UniChar *) mp1, STRFT_MAXZ );
-            if ( mp2 && ( pdata->flOptions & WTF_ADATE_CUSTOM ))
-                UniStrncpy( pdata->uzDateFmt2, (UniChar *) mp2, STRFT_MAXZ );
-            return (MRESULT) 0;
-        */
-
-        /* .................................................................. *
          * WTD_SETSEPARATOR                                                   *
          *                                                                    *
          *   - mp1 (UCHAR) - New percentage width of description field        *
@@ -668,6 +671,8 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                 UniStrcpy( pinit->uzDesc, pdata->uzDesc );
                 UniStrcpy( pinit->uzTimeFmt, pdata->uzTimeFmt );
                 UniStrcpy( pinit->uzDateFmt, pdata->uzDateFmt );
+                UniStrcpy( pinit->uzTZCtry, pdata->uzTZCtry );
+                UniStrcpy( pinit->uzTZRegn, pdata->uzTZRegn );
                 if ( pdata->locale &&
                      ( UniQueryLocaleObject( pdata->locale, LC_TIME, UNI_MBS_STRING_POINTER,
                                              (PPVOID) &pszLocName ) == ULS_SUCCESS )        )
@@ -675,10 +680,10 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                     strncpy( pinit->szLocale, pszLocName, ULS_LNAMEMAX );
                     UniFreeMem( pszLocName );
                 }
-
                 return (MRESULT) TRUE;
             }
             return (MRESULT) FALSE;
+
 
         /* .................................................................. *
          * WTD_QUERYOPTIONS                                                   *
@@ -696,7 +701,6 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
         case WTD_QUERYOPTIONS:
             pdata = WinQueryWindowPtr( hwnd, 0 );
             return (MRESULT) pdata->flOptions;
-
 
     }
 

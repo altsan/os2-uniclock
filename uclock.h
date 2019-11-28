@@ -75,7 +75,7 @@
 #define WTD_SETCOORDINATES      ( WM_USER + 104 )
 #define WTD_SETOPTIONS          ( WM_USER + 105 )
 #define WTD_SETFORMATS          ( WM_USER + 106 )
-//#define WTD_SETALTFORMATS       ( WM_USER + 107 )
+#define WTD_SETCOUNTRYZONE      ( WM_USER + 107 )
 #define WTD_SETWEATHER          ( WM_USER + 108 )
 #define WTD_SETSEPARATOR        ( WM_USER + 109 )
 #define WTD_QUERYCONFIG         ( WM_USER + 110 )
