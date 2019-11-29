@@ -1,5 +1,24 @@
-#include "uclock.h"
+#define INCL_DOSERRORS
+#define INCL_DOSMISC
+#define INCL_DOSRESOURCES
+#define INCL_DOSMODULEMGR
+#define INCL_DOSPROCESS
+#define INCL_GPI
+#define INCL_WIN
+#define INCL_WINPOINTERS
+#include <os2.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <uconv.h>
+#include <unidef.h>
+
+#include <PMPRINTF.H>
+
+#include "wtdpanel.h"
 #include "sunriset.h"
+
 
 // Internal defines
 #define FTYPE_NOTFOUND 0    // font does not exist

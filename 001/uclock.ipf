@@ -339,6 +339,6 @@ full text of the GNU General Public License.
 
 .* ------------------------------------------------------------------------
 :h2 x=left y=bottom width=100% height=100% id=license res=991.GNU General Public License
-.im gplv2.ipf
+.im ..\gplv2.ipf
 
 :euserdoc.

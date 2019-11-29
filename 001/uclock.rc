@@ -1,11 +1,11 @@
 #include <os2.h>
 #include "ids.h"
 
-ICON ID_MAINPROGRAM "program.ico"
-ICON ICON_UP        "up.ico"
-ICON ICON_DOWN      "down.ico"
-ICON ICON_DAY       "day.ico"
-ICON ICON_NIGHT     "night.ico"
+ICON ID_MAINPROGRAM "..\\program.ico"
+ICON ICON_UP        "..\\up.ico"
+ICON ICON_DOWN      "..\\down.ico"
+ICON ICON_DAY       "..\\day.ico"
+ICON ICON_NIGHT     "..\\night.ico"
 
 // String resources are max 255 characters unless otherwise noted.
 

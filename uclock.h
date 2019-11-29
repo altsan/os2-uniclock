@@ -1,26 +1,5 @@
 // uclock.h
-//
-// This file contains shared definitions used by both the main application
-// window (uclock.c) and the custom control "WTDisplayPanel" (wtdisplay.c).
-//
 
-#define INCL_DOSERRORS
-#define INCL_DOSMISC
-#define INCL_DOSRESOURCES
-#define INCL_DOSMODULEMGR
-#define INCL_DOSPROCESS
-#define INCL_GPI
-#define INCL_WIN
-#define INCL_WINPOINTERS
-#include <os2.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <uconv.h>
-#include <unidef.h>
-
-#include <PMPRINTF.H>
 
 // ----------------------------------------------------------------------------
 // MACROS
@@ -30,234 +9,231 @@
     WinMessageBox( HWND_DESKTOP, HWND_DESKTOP, text, "Error", 0, MB_OK | MB_ERROR )
 
 
-
 // ----------------------------------------------------------------------------
 // CONSTANTS
-
-
-// GENERAL CONSTANTS
-//
 
 #define SZ_VERSION              "0.4"
 #define SZ_COPYRIGHT            "2015-2019"
 
+#define SZ_WINDOWCLASS          "UClockWindow"
 
-// The Unicode UCS-2 codepage
-#define UNICODE                 1200
+#define HELP_FILE               "uclock.hlp"
+#define INI_FILE                "uclock.ini"
+#define ZONE_FILE               "ZONEINFO"
 
+// min. size of the program window (not used yet)
+//#define US_MIN_WIDTH            100
+//#define US_MIN_HEIGHT           60
 
-// Maximum string length...
-#define CPNAME_MAXZ             12      // ...of a ULS codepage name
-#define CPSPEC_MAXZ             32      // ...of a ULS codepage specifier
-#define LOCDESC_MAXZ            128     // ...of a place name/description
-#define TIMESTR_MAXZ            64      // ...of a formatted time string
-#define DATESTR_MAXZ            128     // ...of a formatted date string
-#define SUNTIMES_MAXZ           180     // ...of a combined sunrise/sunset string
-#define TZSTR_MAXZ              64      // ...of a TZ variable string
-#define STRFT_MAXZ              64      // ...of a (Uni)strftime format string
-#define PRF_NTLDATA_MAXZ        32      // ...of a data item in PM_National
-#define COUNTRY_MAXZ            64      // ...of a country name
-#define REGION_MAXZ             64      // ...of a timezone/region/city name
+#define LOCALE_BUF_MAX          4096    // maximum length of a locale list
+#define PROFILE_MAXZ            32      // maximum length of INI file name (without path)
+#define TZDATA_MAXZ             128     // maximum length of a TZ profile item
+#define ISO6709_MAXZ            16      // maximum length of an ISO 6709 coordinates string
+#define SZRES_MAXZ              256     // maximum length of a generic string resource
 
+// used to indicate an undefined colour presentation parameter
+#define NO_COLOUR_PP            0xFF000000
 
+// Used by the colour dialog
+#define CWN_CHANGE              0x601
+#define CWM_SETCOLOUR           0x602
 
-// DEFINITIONS FOR THE WT_DISPLAY CONTROL
-//
+// upper limit of the switch-to-compact-view threshold (in pixels)
+#define MAX_THRESHOLD           500
 
-// Class name of the world-time display control
-#define WT_DISPLAY              "WTDisplayPanel"
+// Maximum number of clock-display windows supported
+#define MAX_CLOCKS              12
 
+// Maximum number of clock-display windows allowed in one column
+#define MAX_PER_COLUMN          MAX_CLOCKS
 
-// Custom messages for world-time display control
-#define WTD_SETTIMEZONE         ( WM_USER + 101 )
-#define WTD_SETDATETIME         ( WM_USER + 102 )
-#define WTD_SETLOCALE           ( WM_USER + 103 )
-#define WTD_SETCOORDINATES      ( WM_USER + 104 )
-#define WTD_SETOPTIONS          ( WM_USER + 105 )
-#define WTD_SETFORMATS          ( WM_USER + 106 )
-#define WTD_SETCOUNTRYZONE      ( WM_USER + 107 )
-#define WTD_SETWEATHER          ( WM_USER + 108 )
-#define WTD_SETSEPARATOR        ( WM_USER + 109 )
-#define WTD_QUERYCONFIG         ( WM_USER + 110 )
-#define WTD_QUERYOPTIONS        ( WM_USER + 111 )
-#define WTD_SETINDICATORS       ( WM_USER + 112 )
+// Profile (INI) file entries (these should not exceed 29 characters)
+#define PRF_APP_POSITION        "Position"
+#define PRF_KEY_LEFT            "Left"
+#define PRF_KEY_BOTTOM          "Bottom"
+#define PRF_KEY_WIDTH           "Width"
+#define PRF_KEY_HEIGHT          "Height"
 
+#define PRF_APP_PREFS           "Preferences"
+#define PRF_KEY_FLAGS           "Flags"
+#define PRF_KEY_COMPACTTH       "CompactThreshold"
+#define PRF_KEY_DESCWIDTH       "DescWidth"
+#define PRF_KEY_PERCOLUMN       "PerColumn"
 
-// Custom presentation parameters for the world-time display control
-#define PP_SEPARATORCOLOR       ( PP_USER + 1 )
+#define PRF_APP_CLOCKDATA       "ClockData"
+#define PRF_KEY_NUMCLOCKS       "Count"
+#define PRF_KEY_PANEL           "WTDPanel"   // append ##
+#define PRF_KEY_PRESPARAM       "WTDLook"    // append ##
 
+// App-level style settings
+#define APP_STYLE_TITLEBAR      0x1         // show titlebar
+#define APP_STYLE_WTBORDERS     0x10        // show clock borders
 
-/* Values used by the flOptions field in WTDDATA.  Each nybble represents a
- * different category of (mostly mutually-exclusive) options:
- *
- * 0x00000000
- *   ³³³³³³³À display mode/size (0 == default size)
- *   ³³³³³³ÀÄ border lines      (0 == no border)
- *   ³³³³³ÀÄÄ render style      (0 == digital clock, default font, GPI rendering)
- *   ³³³³ÀÄÄÄ place settings    (0 == no location info available)
- *   ³³³ÀÄÄÄÄ time display      (0 == use locale's standard time format)
- *   ³³ÀÄÄÄÄÄ TBD
- *   ³ÀÄÄÄÄÄÄ date display      (0 == use locale's standard date format)
- *   ÀÄÄÄÄÄÄÄ long date display (0 == use locale's long date format)
- */
-// * == not yet implemented (for future use)
-#define WTF_MODE_LARGE          0x01        // * extra-large display mode
-#define WTF_MODE_COMPACT        0x02        // compact display mode
-#define WTF_MODE_TINY           0x04        // * extra-compact display mode
-#define WTF_BORDER_LEFT         0x10        // draw a line on the left edge
-#define WTF_BORDER_RIGHT        0x20        // draw a line on the right edge
-#define WTF_BORDER_TOP          0x40        // draw a line on the top edge
-#define WTF_BORDER_BOTTOM       0x80        // draw a line on the bottom edge
-#define WTF_BORDER_FULL         0xF0        // draw all four borders
-//#define WTF_CLOCK_BMP1          0x100       // * use style-1 bitmaps for clock numbers
-//#define WTF_CLOCK_BMP2          0x200       // * use style-2 bitmaps for clock numbers
-#define WTF_SPECIAL_CAIRO       0x400       // * use Cairo for rendering instead of standard GPI
-#define WTF_SPECIAL_ANALOG      0x800       // * use an analog-style clock
-#define WTF_PLACE_HAVECOORD     0x1000      // we have geographic coordinates for this clock
-#define WTF_PLACE_HAVECITY      0x2000      // * we have a city name for this clock
-#define WTF_PLACE_HAVEWEATHER   0x4000      // * we can determine current weather for this clock
-#define WTF_TIME_ALT            0x10000     // use locale's alternate time format
-#define WTF_TIME_SYSTEM         0x20000     // use system default time format
-#define WTF_TIME_CUSTOM         0x40000     // use a customized time format
-#define WTF_TIME_SHORT          0x80000     // don't show seconds in time (ignored for custom & alt)
-#define WTF_DATE_ALT            0x1000000   // use locale's alternate date format
-#define WTF_DATE_SYSTEM         0x2000000   // use system default date format
-#define WTF_DATE_CUSTOM         0x4000000   // use a customized date format
-#define WTF_LONGDATE_ALT        0x10000000  // * use locale's alternate long date format
-#define WTF_LONGDATE_SYSTEM     0x20000000  // * use system default long date format
-#define WTF_LONGDATE_CUSTOM     0x40000000  // * use a customized long date format
+PFNWP pfnRecProc;
 
 
-/* Values used by the flState field in WTDDATA.  Some of these are used to
- * indicate the current display state of fields which can be clicked to
- * cycle through various data.  Others indicate miscellaneous GUI states
- * (e.g. keyboard focus, popup menu active, etc.).
- *
- * 0x00000000
- *   ³³³³³³³À description/top area         (0 == show city name)
- *   ³³³³³³ÀÄ time/middle area             (0 == show (normal) time)
- *   ³³³³³ÀÄÄ date/bottom area             (0 == show (normal) date)
- *   ³³³³ÀÄÄÄ right area in compact view   (0 == show (normal) time)
- *   ³³³ÀÄÄÄÄ misc. indicators             (0 == none)
- *   ³³ÀÄÄÄÄÄ TBD
- *   ³ÀÄÄÄÄÄÄ GUI state indicators         (0 == default)
- *   ÀÄÄÄÄÄÄÄ GUI state indicators         (0 == default)
- *
- */
-// * == not yet implemented
-#define WTS_TOP_TZNAME          0x1         // * show TZ description text in top area
-#define WTS_TOP_TZVAR           0x2         // * show TZ variable in top area
-#define WTS_TOP_COORDINATES     0x4         // * show geographic coordinates in top area
-//#define WTS_MID_ALTTIME         0x10        // show user's alternate time in middle area
-//#define WTS_BOT_ALTDATE         0x100       // show user's alternate date in bottom area
-#define WTS_BOT_SUNTIME         0x200       // show sunrise/sunset times in bottom area
-#define WTS_CVR_DATE            0x1000      // show (normal) date in compact view right
-#define WTS_CVR_SUNTIME         0x2000      // show sunrise/sunset times in compact view right
-//#define WTS_MIS_WEATHER         0x10000     // * display weather icon
-#define WTS_GUI_HILITE          0x1000000   // draw focus (highlighted) state on panel
-#define WTS_GUI_MENUPOPUP       0x2000000   // draw "active popup menu" border on panel
-#define WTS_GUI_FOCUS1          0x10000000  // draw focus for first sub-area (left or top)
-#define WTS_GUI_FOCUS2          0x20000000  // draw focus for second sub-area (mid-left)
-#define WTS_GUI_FOCUS3          0x40000000  // draw focus for third sub-area (mid-right)
-#define WTS_GUI_FOCUS4          0x80000000  // draw focus for fourth sub-area (right or bottom)
-#define WTS_GUI_FOCUSALL        0xFF000000  // shorthand for all focus bits
+// ----------------------------------------------------------------------------
+// MACROS
+
+// Get separate RGB values from a long
+#define RGBVAL_RED(l)           ((BYTE)((l >> 16) & 0xFF))
+#define RGBVAL_GREEN(l)         ((BYTE)((l >>  8) & 0xFF))
+#define RGBVAL_BLUE(l)          ((BYTE)(l & 0xFF))
+
+// Combine separate RGB values into a long
+#define RGB2LONG(r,g,b)         ((LONG)((r << 16) | (g << 8) | b ))
+
 
 // ----------------------------------------------------------------------------
 // TYPEDEFS
 
-// system default time & date formatting data from OS2.INI PM_(Default_)National
-typedef struct _PM_National_Data {
-    BYTE        iTime;                    // time format (0=12hr, 1=24hr)
-    BYTE        iDate;                    // date format (0:MDY, 1:DMY, 2:YMD)
-    CHAR        szAM[ PRF_NTLDATA_MAXZ ]; // AM string
-    CHAR        szPM[ PRF_NTLDATA_MAXZ ]; // PM string
-    CHAR        szTS[ PRF_NTLDATA_MAXZ ]; // time separator (e.g. ":")
-    CHAR        szDS[ PRF_NTLDATA_MAXZ ]; // date separator (e.g. "/")
-} NATIONFMT, *PNATIONFMT;
+// Used by the PM colour-wheel control (on the colour-selection dialog)
+typedef struct CWPARAM {
+    USHORT  cb;
+    RGB     rgb;
+    BOOL    fCancel;
+} CWPARAM;
+
+typedef struct CWDATA {
+    USHORT  updatectl;
+    HWND    hwndCol;
+    HWND    hwndSpinR;
+    HWND    hwndSpinG;
+    HWND    hwndSpinB;
+    RGB     *rgb;
+    RGB     rgbold;
+    BOOL    *pfCancel;
+} CWDATA;
 
 
-// Geographical coordinates (latitude & longitude)
-// Don't bother with seconds - even at its widest point, one minute is less
-// than 2 km, and that should be more than precise enough for our purposes.
-typedef struct _Geo_Coordinates {
-    SHORT       sLatitude;          // degrees latitude (-90 <-> 90)
-    BYTE        bLaMin;             // minutes latitude (0-60)
-    SHORT       sLongitude;         // degrees longitude (-180 <-> 180)
-    BYTE        bLoMin;             // minutes longitude (0-60)
-} GEOCOORD, *PGEOCOORD;
+// Used to group a single clock's presentation parameters together
+typedef struct _Clock_PresParams {
+    CHAR  szFont[ FACESIZE ];           // font
+    ULONG clrBG,                        // background colour
+          clrFG,                        // foreground (text) colour
+          clrBor,                       // border colour
+          clrSep;                       // separator line colour
+} CLKSTYLE, *PCLKSTYLE;
 
 
-// Configurable data for the world-time display, used by WM_CREATE/WM_QUERYCONFIG
-// (and also for saving clock settings to the INI file).
-typedef struct _WTDisplay_CData {
-    USHORT        cb;                       // size of this data structure
-    ULONG         flOptions;                // option settings
-    CHAR          szTZ[ TZSTR_MAXZ ];       // timezone (TZ string)
-    CHAR          szLocale[ ULS_LNAMEMAX ]; // formatting locale name
-    GEOCOORD      coordinates;              // geographic coordinates
-    UniChar       uzDesc[ LOCDESC_MAXZ ];   // timezone/place description
-    UniChar       uzTimeFmt[ STRFT_MAXZ ];  // UniStrftime time format string
-    UniChar       uzDateFmt[ STRFT_MAXZ ];  // UniStrftime date format string
-    BYTE          bSep;                     // width of description area as % of total width
-    UniChar       uzTZCtry[ COUNTRY_MAXZ ]; // last selected timezone country
-    UniChar       uzTZRegn[ REGION_MAXZ ];  // last selected timezone region
-} WTDCDATA, *PWTDCDATA;
+// Used to pass data in the configuration dialog
+typedef struct _Config_Data {
+    HAB         hab;                        // anchor-block handle
+    HMQ         hmq;                        // main message queue
+    USHORT      usClocks;                   // number of clocks
+    WTDCDATA    aClockData[ MAX_CLOCKS ];   // array of clock data
+    CLKSTYLE    aClockStyle[ MAX_CLOCKS ];  // array of clock styles
+    USHORT      aClockOrder[ MAX_CLOCKS ];  // new clock order (array of indices)
+    ULONG       ulPage1;                    // page ID
+    USHORT      fsStyle;                    // global style flags
+    USHORT      usCompactThreshold;         // when to auto-switch to compact view
+    USHORT      usPerColumn;                // no. of clocks to show per column
+    BYTE        bDescWidth;                 // % width of descriptions in compact view
+    BOOL        bChanged;                   // was the configuration changed?
+    UconvObject uconv;                      // Unicode text conversion object
+} UCFGDATA, *PUCFGDATA;
 
-// Stub version of the above, used for fallback if we have a size mismatch
-// with the saved INI data; these fields should always be present regardless
-// of program version.
-typedef struct _WTDisplay_CStub {
-    USHORT        cb;                       // size of this data structure
-    ULONG         flOptions;                // option settings
-    CHAR          szTZ[ TZSTR_MAXZ ];       // timezone (TZ string)
-    CHAR          szLocale[ ULS_LNAMEMAX ]; // formatting locale name
-    GEOCOORD      coordinates;              // geographic coordinates
-    UniChar       uzDesc[ LOCDESC_MAXZ ];   // timezone/place description
-    UniChar       uzTimeFmt[ STRFT_MAXZ ];  // UniStrftime time format string
-    UniChar       uzDateFmt[ STRFT_MAXZ ];  // UniStrftime date format string
-} WTDCSTUB, *PWTDCSTUB;
 
-// Full control data for the world-time display
-typedef struct _WTDisplay_Data {
-    time_t        timeval;                  // current time (UTC)
-    time_t        tm_sunrise;               // sunrise time (UTC)
-    time_t        tm_sunset;                // sunset time (UTC)
-    ULONG         flOptions;                // option settings
-    ULONG         flState;                  // state flags
-    LocaleObject  locale;                   // formatting locale
-    UconvObject   uconv;                    // codepage conversion object
-    GEOCOORD      coordinates;              // geographic coordinates
-    NATIONFMT     sysTimeFmt;               // system default time format data
-    CHAR          szTZ[ TZSTR_MAXZ ];       // timezone (TZ string)
-    CHAR          szDesc[ LOCDESC_MAXZ ];   // timezone/place description (codepage version)
-    CHAR          szTime[ TIMESTR_MAXZ ];   // formatted time string      (codepage version)
-    CHAR          szDate[ DATESTR_MAXZ ];   // formatted date string      (codepage version)
-    CHAR          szSunR[ TIMESTR_MAXZ ];   // formatted sunrise time     (codepage version)
-    CHAR          szSunS[ TIMESTR_MAXZ ];   // formatted sunset time      (codepage version)
-    UniChar       uzDesc[ LOCDESC_MAXZ ];   // timezone/place description (Unicode version)
-    UniChar       uzTime[ TIMESTR_MAXZ ];   // formatted time string      (Unicode version)
-    UniChar       uzDate[ DATESTR_MAXZ ];   // formatted date string      (Unicode version)
-    UniChar       uzSunR[ TIMESTR_MAXZ ];   // formatted sunrise time     (Unicode version)
-    UniChar       uzSunS[ TIMESTR_MAXZ ];   // formatted sunset time      (Unicode version)
-    UniChar       uzTimeFmt[ STRFT_MAXZ ];  // UniStrftime time format string
-    UniChar       uzDateFmt[ STRFT_MAXZ ];  // UniStrftime date format string
-    UniChar       uzTZCtry[ COUNTRY_MAXZ ]; // last selected timezone country
-    UniChar       uzTZRegn[ REGION_MAXZ ];  // last selected timezone region
-    BOOL          fUnicode;                 // using Unicode font?
-    FATTRS        faNormal;                 // attributes of normal display font
-    FATTRS        faTime;                   // attributes of time display font
-    BYTE          bSep;                     // width of description area as % of total width
-    RECTL         rclDesc;                  // defines the description area
-    RECTL         rclTime;                  // defines the time display area
-    RECTL         rclDate;                  // defines the date display area
-    HPOINTER      hptrDay;                  // daytime indicator icon
-    HPOINTER      hptrNight;                // nighttime indicator icon
-} WTDDATA, *PWTDDATA;
+// Used to pass data in the clock properties dialog
+typedef struct _Clock_Properties {
+    HAB         hab;                        // anchor-block handle
+    HMQ         hmq;                        // main message queue
+    USHORT      usClock;                    // current clock number
+    WTDCDATA    clockData;                  // clock's data
+    CLKSTYLE    clockStyle;                 // clock's fonts & colours
+    ULONG       ulPage1,                    // page ID of clock setup page
+                ulPage2;                    // page ID of clock style page
+    BOOL        bChanged;                   // was the configuration changed?
+    UconvObject uconv;                      // Unicode text conversion object
+} UCLKPROP, *PUCLKPROP;
 
+
+// Used to pass data in the timezone selection dialog
+typedef struct _TZ_Properties {
+    HAB         hab;                        // anchor-block handle
+    HMQ         hmq;                        // main message queue
+    CHAR        achDesc[ LOCDESC_MAXZ ];    // current description
+    CHAR        achTZ[ TZSTR_MAXZ ];        // TZ variable string
+    CHAR        achCtry[ COUNTRY_MAXZ ];    // current country selection
+    CHAR        achRegn[ REGION_MAXZ ];     // current region/city selection
+    GEOCOORD    coordinates;                // geographic coordinates
+    UconvObject uconv;                      // Unicode (UCS-2) conversion object
+    UconvObject uconv1208;                  // UTF-8 conversion object
+} TZPROP, *PTZPROP;
+
+
+// Contains global application data
+typedef struct _Global_Data {
+    HAB      hab;                       // anchor-block handle
+    HMQ      hmq;                       // main message queue
+    HINI     hIni;                      // program INI file
+    HPOINTER hptrDay;                   // day indicator icon
+    HPOINTER hptrNight;                 // night indicator icon
+
+    HWND    clocks[ MAX_CLOCKS ];       // array of clock-display controls
+    HWND    hwndTB, hwndSM, hwndMM;     // titlebar and window control handles
+    HWND    hwndPopup;                  // popup menu
+    USHORT  usClocks;                   // number of clocks configured
+    ULONG   timer;                      // refresh timer
+    CHAR    szTZ[ TZSTR_MAXZ ];         // actual system TZ
+    CHAR    szLoc[ ULS_LNAMEMAX+1 ];    // actual system locale
+    USHORT  usMsgClock;                 // clock which sent the latest message
+    USHORT  fsStyle;                    // global style flags
+    USHORT  usCompactThreshold;         // when to auto-switch to compact view
+    USHORT  usPerColumn;                // no. of clocks to show per column
+    USHORT  usCols;                     // number of columns required
+    BYTE    bDescWidth;                 // % width of descriptions in compact view
+} UCLGLOBAL, *PUCLGLOBAL;
 
 
 // ----------------------------------------------------------------------------
 // FUNCTION PROTOTYPES
 
-MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+// application logic
+MRESULT EXPENTRY MainWndProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+void             ResizeClocks( HWND hwnd );
+MRESULT          PaintClient( HWND hwnd );
+MRESULT EXPENTRY AboutDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+BOOL             WindowSetup( HWND hwnd, HWND hwndClient );
+void             ToggleTitleBar( PUCLGLOBAL pGlobal, HWND hwndFrame, BOOL fOn );
+void             SaveSettings( HWND hwnd );
+void             UpdateTime( HWND hwnd );
+BOOL             AddNewClock( HWND hwnd );
+void             DeleteClock( HWND hwnd, PUCLGLOBAL pGlobal, USHORT usClock );
+void             UpdateClockBorders( PUCLGLOBAL pGlobal );
+
+// application configuration
+void             ConfigNotebook( HWND hwnd );
+MRESULT EXPENTRY CfgDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+BOOL             CfgPopulateNotebook( HWND hwnd, PUCFGDATA pConfig );
+MRESULT EXPENTRY CfgCommonPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+void             CfgSettingsCommon( HWND hwnd, PUCFGDATA pConfig );
+void             CfgPopulateClockList( HWND hwnd, PUCFGDATA pConfig );
+
+// clock panel configuration
+BOOL             ClockNotebook( HWND hwnd, USHORT usNumber );
+MRESULT EXPENTRY ClkDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+BOOL             ClkPopulateNotebook( HWND hwnd, PUCLKPROP pConfig );
+MRESULT EXPENTRY CfgClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+MRESULT EXPENTRY CfgPresPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+MRESULT EXPENTRY ClkStylePageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+BOOL             ClkSettingsClock( HWND hwnd, PUCLKPROP pConfig );
+BOOL             ClkSettingsStyle( HWND hwnd, PUCLKPROP pConfig );
+MRESULT EXPENTRY ClrDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+void             TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry, PTZPROP pProps );
+BOOL             SelectFont( HWND hwnd, PSZ pszFace, USHORT cbBuf );
+void             SelectColour( HWND hwnd, HWND hwndCtl );
+void             SelectTimeZone( HWND hwnd, PUCLKPROP pConfig );
+BOOL             ParseTZCoordinates( PSZ pszCoord, PGEOCOORD pGC );
+void             UnParseTZCoordinates( PSZ pszCoord, GEOCOORD coordinates );
+
+// utils
+void             CentreWindow( HWND hwnd );
+void             ErrorMessage( HWND hwnd, USHORT usID );
+void             OpenProfile( PUCLGLOBAL pGlobal );
+BOOL             LoadIniData( PVOID pData, USHORT cb, HINI hIni, PSZ pszApp, PSZ pszKey );
+SHORT            MoveListItem( HWND hwndList, SHORT sItem, BOOL fMoveUp );
+
 
