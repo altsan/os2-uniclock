@@ -1,4 +1,22 @@
-// uclock.h
+/****************************************************************************
+ * uclock.h                                                                 *
+ ****************************************************************************
+ *  This program is free software; you can redistribute it and/or modify    *
+ *  it under the terms of the GNU General Public License as published by    *
+ *  the Free Software Foundation; either version 2 of the License, or       *
+ *  (at your option) any later version.                                     *
+ *                                                                          *
+ *  This program is distributed in the hope that it will be useful,         *
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of          *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the           *
+ *  GNU General Public License for more details.                            *
+ *                                                                          *
+ *  You should have received a copy of the GNU General Public License       *
+ *  along with this program; if not, write to the Free Software             *
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA                *
+ *  02111-1307  USA                                                         *
+ *                                                                          *
+ ****************************************************************************/
 
 
 // ----------------------------------------------------------------------------
@@ -194,7 +212,9 @@ MRESULT EXPENTRY MainWndProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 void             ResizeClocks( HWND hwnd );
 MRESULT          PaintClient( HWND hwnd );
 MRESULT EXPENTRY AboutDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
+MRESULT EXPENTRY ClrDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 BOOL             WindowSetup( HWND hwnd, HWND hwndClient );
+void             OpenProfile( PUCLGLOBAL pGlobal );
 void             ToggleTitleBar( PUCLGLOBAL pGlobal, HWND hwndFrame, BOOL fOn );
 void             SaveSettings( HWND hwnd );
 void             UpdateTime( HWND hwnd );
@@ -214,17 +234,12 @@ void             CfgPopulateClockList( HWND hwnd, PUCFGDATA pConfig );
 BOOL             ClockNotebook( HWND hwnd, USHORT usNumber );
 MRESULT EXPENTRY ClkDialogProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 BOOL             ClkPopulateNotebook( HWND hwnd, PUCLKPROP pConfig );
-MRESULT EXPENTRY CfgClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
-MRESULT EXPENTRY CfgPresPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 MRESULT EXPENTRY ClkClockPageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 MRESULT EXPENTRY ClkStylePageProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 BOOL             ClkSettingsClock( HWND hwnd, PUCLKPROP pConfig );
 BOOL             ClkSettingsStyle( HWND hwnd, PUCLKPROP pConfig );
-MRESULT EXPENTRY ClrDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 MRESULT EXPENTRY TZDlgProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 );
 void             TZPopulateCountryZones( HWND hwnd, HINI hTZDB, PSZ pszCtry, PTZPROP pProps );
-BOOL             SelectFont( HWND hwnd, PSZ pszFace, USHORT cbBuf );
-void             SelectColour( HWND hwnd, HWND hwndCtl );
 void             SelectTimeZone( HWND hwnd, PUCLKPROP pConfig );
 BOOL             ParseTZCoordinates( PSZ pszCoord, PGEOCOORD pGC );
 void             UnParseTZCoordinates( PSZ pszCoord, GEOCOORD coordinates );
@@ -232,8 +247,9 @@ void             UnParseTZCoordinates( PSZ pszCoord, GEOCOORD coordinates );
 // utils
 void             CentreWindow( HWND hwnd );
 void             ErrorMessage( HWND hwnd, USHORT usID );
-void             OpenProfile( PUCLGLOBAL pGlobal );
 BOOL             LoadIniData( PVOID pData, USHORT cb, HINI hIni, PSZ pszApp, PSZ pszKey );
 SHORT            MoveListItem( HWND hwndList, SHORT sItem, BOOL fMoveUp );
+BOOL             SelectFont( HWND hwnd, PSZ pszFace, USHORT cbBuf );
+void             SelectColour( HWND hwnd, HWND hwndCtl );
 
 

@@ -20,7 +20,7 @@ CFLAGS = /Gm /Ss /Q+ /Wuse      # /Wrea /Wuni
 RFLAGS = -n -cc $(NLV)
 LFLAGS = /NOE /PMTYPE:PM /NOLOGO
 NAME   = uclock
-OBJS   = $(NAME).obj wtdpanel.obj sunriset.obj
+OBJS   = $(NAME).obj cfg_prog.obj cfg_clk.obj wtdpanel.obj sunriset.obj
 LIBS   = libconv.lib libuls.lib
 ICONS  = program.ico up.ico down.ico
 
@@ -50,6 +50,10 @@ wtdpanel.obj: wtdpanel.c wtdpanel.h ids.h Makefile
 
 uclock.obj  : uclock.c $(NAME).h wtdpanel.h ids.h Makefile
 
+cfg_prog.obj: cfg_prog.c $(NAME).h wtdpanel.h ids.h Makefile
+
+cfg_clk.obj:  cfg_clk.c $(NAME).h wtdpanel.h ids.h Makefile
+
 $(NAME).exe : $(OBJS) $(NAME).h ids.h wtdpanel.h $(NAME).res Makefile
                 -touch $(NAME).def
                 -makedesc -D$(BL_NAME) -N$(BL_VEND) -V"^#define=SZ_VERSION,uclock.h" $(NAME).def
@@ -67,5 +71,5 @@ $(NAME).hlp : {$(NLV)}$(NAME).ipf
                 %cd ..
 
 clean       :
-                -del $(OBJS) $(NAME).res $(NAME).exe 2>NUL
+                -del $(OBJS) $(NAME).res $(NAME).exe $(NAME).hlp 2>NUL
 
