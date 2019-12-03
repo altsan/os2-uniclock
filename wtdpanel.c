@@ -63,6 +63,7 @@
 // Internal function prototypes
 void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, LONG clrBor, PWTDDATA pData );
 void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, LONG clrBor, PWTDDATA pdata );
+void CycleDisplay( HWND hwnd, POINTL ptl, PWTDDATA pdata );
 BYTE GetFontType( HPS hps, PSZ pszFontFace, PFATTRS pfAttrs, LONG lCY, BOOL bH );
 void SetFormatStrings( PWTDDATA pdata );
 BOOL FormatTime( HWND hwnd, PWTDDATA pdata, struct tm *time, UniChar *puzTime, PSZ pszTime );
@@ -183,45 +184,8 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             pdata = WinQueryWindowPtr( hwnd, 0 );
             ptl.x = SHORT1FROMMP( mp1 );
             ptl.y = SHORT2FROMMP( mp1 );
-            if ( pdata->flOptions & WTF_MODE_COMPACT ) {
-                if ( WinPtInRect( WinQueryAnchorBlock(hwnd), &(pdata->rclDate), &ptl )) {
-                    // cycle to the next view
-                    if ( pdata->flState & WTS_CVR_DATE ) {
-                        // currently showing date - cycle to time
-                        pdata->flState &= ~WTS_CVR_DATE;
-                        //pdata->flState |= WTS_CVR_SUNTIME;
-                        //pdata->flState &= ~WTS_CVR_WEATHER;   // for future use
-                    }
-                    else if ( pdata->flState & WTS_CVR_SUNTIME ) {
-                        // currently showing sunrise/sunset - not yet implemented
-                        pdata->flState &= ~WTS_CVR_DATE;
-                        //pdata->flState &= ~WTS_CVR_SUNTIME;
-                        //pdata->flState |= WTS_CVR_WEATHER;    // for future use
-                    }
-                    else {
-                        // currently showing time (default) - cycle to date
-                        pdata->flState |= WTS_CVR_DATE;
-                        //pdata->flState &= ~WTS_CVR_SUNTIME;
-                        //pdata->flState &= ~WTS_CVR_WEATHER;   // for future use
-                    }
-                    WinInvalidateRect( hwnd, &(pdata->rclDate), FALSE );
-                }
-            }
-            else {      // default (medium) view
-                if ( WinPtInRect( WinQueryAnchorBlock(hwnd), &(pdata->rclDate), &ptl )) {
-                    // date (bottom) area - cycle to the next view
-                    if ( pdata->flState & WTS_BOT_SUNTIME ) {
-                        // currently showing sunrise/sunset time, cycle to date
-                        pdata->flState &= ~WTS_BOT_SUNTIME;
-                    }
-                    else {
-                        // currently showing date, cycle to sunrise/sunset
-                        if ( pdata->flOptions & WTF_PLACE_HAVECOORD )
-                            pdata->flState |= WTS_BOT_SUNTIME;
-                    }
-                    WinInvalidateRect( hwnd, &(pdata->rclDate), FALSE );
-                }
-            }
+            CycleDisplay( hwnd, ptl, pdata );
+
             // Leave focus activation to the parent application
             //WinSetFocus( HWND_DESKTOP, hwnd );
             return (MRESULT) TRUE;
@@ -237,65 +201,93 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
             //ch   = (CHAR)( SHORT1FROMMP( mp2 ) & 0xFF );
             usVK = SHORT2FROMMP( mp2 );
-            //_PmpfF(("Key: %u", usVK ));
+            switch ( usVK ) {
 
-            if (( usVK == VK_LEFT ) || ( usVK == VK_UP )) {
-                // left/up arrow: previous focus area
-                if ( pdata->flOptions & WTF_MODE_COMPACT ) {
-                    // In compact mode, only FOCUS1 and FOCUS4 will be used
-                    if ( pdata->flState & WTS_GUI_FOCUS1 ) {
-                        pdata->flState &= ~WTS_GUI_FOCUSALL;
-                        pdata->flState |= WTS_GUI_FOCUS4;
+                case VK_LEFT:
+                case VK_UP:
+                    // left/up arrow: previous focus area
+                    if ( pdata->flOptions & WTF_MODE_COMPACT ) {
+                        // In compact mode, only FOCUS1 and FOCUS4 will be used
+                        if ( pdata->flState & WTS_GUI_FOCUS1 ) {
+                            pdata->flState &= ~WTS_GUI_FOCUSALL;
+                            pdata->flState |= WTS_GUI_FOCUS4;
+                        }
+                        else {
+                            pdata->flState &= ~WTS_GUI_FOCUSALL;
+                            pdata->flState |= WTS_GUI_FOCUS1;
+                        }
                     }
                     else {
-                        pdata->flState &= ~WTS_GUI_FOCUSALL;
-                        pdata->flState |= WTS_GUI_FOCUS1;
+                        // In standard mode, FOCUS1, FOCUS2 and FOCUS4 are used for now
+                        if ( pdata->flState & WTS_GUI_FOCUS1 ) {
+                            pdata->flState &= ~WTS_GUI_FOCUSALL;
+                            pdata->flState |= WTS_GUI_FOCUS4;
+                        }
+                        else if ( pdata->flState & WTS_GUI_FOCUS4 ) {
+                            pdata->flState &= ~WTS_GUI_FOCUSALL;
+                            pdata->flState |= WTS_GUI_FOCUS2;
+                        }
+                        else {
+                            pdata->flState &= ~WTS_GUI_FOCUSALL;
+                            pdata->flState |= WTS_GUI_FOCUS1;
+                        }
                     }
-                }
-                else {
-                    // In standard mode, FOCUS1, FOCUS2 and FOCUS4 are used for now
-                    if ( pdata->flState & WTS_GUI_FOCUS1 ) {
-                        pdata->flState &= ~WTS_GUI_FOCUSALL;
-                        pdata->flState |= WTS_GUI_FOCUS4;
-                    }
-                    else if ( pdata->flState & WTS_GUI_FOCUS4 ) {
-                        pdata->flState &= ~WTS_GUI_FOCUSALL;
-                        pdata->flState |= WTS_GUI_FOCUS2;
+                    break;
+
+                case VK_RIGHT:
+                case VK_DOWN:
+                    // right/down arrow: next focus area
+                    if ( pdata->flOptions & WTF_MODE_COMPACT ) {
+                        // In compact mode, only FOCUS1 and FOCUS4 will be used
+                        if ( pdata->flState & WTS_GUI_FOCUS1 ) {
+                            pdata->flState &= ~WTS_GUI_FOCUSALL;
+                            pdata->flState |= WTS_GUI_FOCUS4;
+                        }
+                        else {
+                            pdata->flState &= ~WTS_GUI_FOCUSALL;
+                            pdata->flState |= WTS_GUI_FOCUS1;
+                        }
                     }
                     else {
-                        pdata->flState &= ~WTS_GUI_FOCUSALL;
-                        pdata->flState |= WTS_GUI_FOCUS1;
+                        // In standard mode, FOCUS1, FOCUS2 and FOCUS4 are used for now
+                        if ( pdata->flState & WTS_GUI_FOCUS1 ) {
+                            pdata->flState &= ~WTS_GUI_FOCUSALL;
+                            pdata->flState |= WTS_GUI_FOCUS2;
+                        }
+                        else if ( pdata->flState & WTS_GUI_FOCUS2 ) {
+                            pdata->flState &= ~WTS_GUI_FOCUSALL;
+                            pdata->flState |= WTS_GUI_FOCUS4;
+                        }
+                        else {
+                            pdata->flState &= ~WTS_GUI_FOCUSALL;
+                            pdata->flState |= WTS_GUI_FOCUS1;
+                        }
                     }
-                }
-            }
-            else if (( usVK == VK_RIGHT ) || ( usVK == VK_DOWN )) {
-                // right/down arrow: next focus area
-                if ( pdata->flOptions & WTF_MODE_COMPACT ) {
-                    // In compact mode, only FOCUS1 and FOCUS4 will be used
+                    break;
+
+                case VK_SPACE:
+                    // Cycle view for the appropriate field
                     if ( pdata->flState & WTS_GUI_FOCUS1 ) {
-                        pdata->flState &= ~WTS_GUI_FOCUSALL;
-                        pdata->flState |= WTS_GUI_FOCUS4;
-                    }
-                    else {
-                        pdata->flState &= ~WTS_GUI_FOCUSALL;
-                        pdata->flState |= WTS_GUI_FOCUS1;
-                    }
-                }
-                else {
-                    // In standard mode, FOCUS1, FOCUS2 and FOCUS4 are used for now
-                    if ( pdata->flState & WTS_GUI_FOCUS1 ) {
-                        pdata->flState &= ~WTS_GUI_FOCUSALL;
-                        pdata->flState |= WTS_GUI_FOCUS2;
+                        ptl.x = pdata->rclDesc.xLeft + 1;
+                        ptl.y = pdata->rclDesc.yBottom + 1;
                     }
                     else if ( pdata->flState & WTS_GUI_FOCUS2 ) {
-                        pdata->flState &= ~WTS_GUI_FOCUSALL;
-                        pdata->flState |= WTS_GUI_FOCUS4;
+                        ptl.x = pdata->rclTime.xLeft + 1;
+                        ptl.y = pdata->rclTime.yBottom + 1;
                     }
-                    else {
-                        pdata->flState &= ~WTS_GUI_FOCUSALL;
-                        pdata->flState |= WTS_GUI_FOCUS1;
+                    else if ( pdata->flState & WTS_GUI_FOCUS4 ) {
+                        ptl.x = pdata->rclDate.xLeft + 1;
+                        ptl.y = pdata->rclDate.yBottom + 1;
                     }
-                }
+                    CycleDisplay( hwnd, ptl, pdata );
+                    break;
+
+                case VK_TAB:
+                case VK_BACKTAB:
+                    // Pass up to the owner so it can handle focus switching
+                    WinPostMsg( WinQueryWindow(hwnd, QW_OWNER), msg, mp1, mp2 );
+                    break;
+
             }
             WinInvalidateRect( hwnd, NULL, FALSE );
             break;
@@ -1193,6 +1185,56 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     ptl.y = rclLeft.yTop;
     GpiLine( hps, &ptl );
 
+}
+
+
+/* ------------------------------------------------------------------------- *
+ * CycleDisplay                                                              *
+ *                                                                           *
+ * Cycle to the next display mode, if any, for the sub-field at the current  *
+ * point.                                                                    *
+ * ------------------------------------------------------------------------- */
+void CycleDisplay( HWND hwnd, POINTL ptl, PWTDDATA pdata )
+{
+    if ( pdata->flOptions & WTF_MODE_COMPACT ) {
+        if ( WinPtInRect( WinQueryAnchorBlock(hwnd), &(pdata->rclDate), &ptl )) {
+            // cycle to the next view
+            if ( pdata->flState & WTS_CVR_DATE ) {
+                // currently showing date - cycle to time
+                pdata->flState &= ~WTS_CVR_DATE;
+                //pdata->flState |= WTS_CVR_SUNTIME;
+                //pdata->flState &= ~WTS_CVR_WEATHER;   // for future use
+            }
+            else if ( pdata->flState & WTS_CVR_SUNTIME ) {
+                // currently showing sunrise/sunset - not yet implemented
+                pdata->flState &= ~WTS_CVR_DATE;
+                //pdata->flState &= ~WTS_CVR_SUNTIME;
+                //pdata->flState |= WTS_CVR_WEATHER;    // for future use
+            }
+            else {
+                // currently showing time (default) - cycle to date
+                pdata->flState |= WTS_CVR_DATE;
+                //pdata->flState &= ~WTS_CVR_SUNTIME;
+                //pdata->flState &= ~WTS_CVR_WEATHER;   // for future use
+            }
+            WinInvalidateRect( hwnd, &(pdata->rclDate), FALSE );
+        }
+    }
+    else {      // default (medium) view
+        if ( WinPtInRect( WinQueryAnchorBlock(hwnd), &(pdata->rclDate), &ptl )) {
+            // date (bottom) area - cycle to the next view
+            if ( pdata->flState & WTS_BOT_SUNTIME ) {
+                // currently showing sunrise/sunset time, cycle to date
+                pdata->flState &= ~WTS_BOT_SUNTIME;
+            }
+            else {
+                // currently showing date, cycle to sunrise/sunset
+                if ( pdata->flOptions & WTF_PLACE_HAVECOORD )
+                    pdata->flState |= WTS_BOT_SUNTIME;
+            }
+            WinInvalidateRect( hwnd, &(pdata->rclDate), FALSE );
+        }
+    }
 }
 
 
