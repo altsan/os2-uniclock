@@ -222,6 +222,8 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                     WinInvalidateRect( hwnd, &(pdata->rclDate), FALSE );
                 }
             }
+            // Leave focus activation to the parent application
+            //WinSetFocus( HWND_DESKTOP, hwnd );
             return (MRESULT) TRUE;
             // WM_BUTTON1CLICK
 
@@ -295,17 +297,21 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                     }
                 }
             }
+            WinInvalidateRect( hwnd, NULL, FALSE );
             break;
             // WM_CHAR
 
 
         case WM_SETFOCUS:
             pdata = WinQueryWindowPtr( hwnd, 0 );
-            if ( (USHORT)mp2 == TRUE )
+            pdata->flState &= ~WTS_GUI_FOCUSALL;
+            if ( (USHORT)mp2 == TRUE ) {
                 pdata->flState |= WTS_GUI_HILITE;
+                pdata->flState |= WTS_GUI_FOCUS1;
+            }
             else
                 pdata->flState &= ~WTS_GUI_HILITE;
-            WinInvalidateRect(hwnd, NULL, FALSE);
+            WinInvalidateRect( hwnd, NULL, FALSE );
             break;
 
 
@@ -396,13 +402,15 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                 rcl.yTop -= 1;
             }
 
-            // draw the selection highlight (a solid border)
+            // draw the selection highlight, if applicable
             if ( pdata->flState & WTS_GUI_HILITE ) {
-                GpiSetColor( hps, clrFG );
+                GpiSetColor( hps, clrFG & ~0x484848 );
                 GpiSetLineType( hps, LINETYPE_SOLID );
-                ptl.x = 1; ptl.y = 1;
+                ptl.x = ( pdata->flOptions & WTF_BORDER_LEFT )? 1: 0;
+                ptl.y = ( pdata->flOptions & WTF_BORDER_BOTTOM )? 1: 0;
                 GpiMove( hps, &ptl );
-                ptl.x = rcl.xRight - 1; ptl.y = rcl.yTop - 1;
+                ptl.x = ( pdata->flOptions & WTF_BORDER_RIGHT )? rcl.xRight - 1: rcl.xRight;
+                ptl.y = ( pdata->flOptions & WTF_BORDER_TOP )? rcl.yTop - 1: rcl.yTop;
                 GpiBox( hps, DRO_OUTLINE, &ptl, 0, 0 );
             }
 
@@ -1146,7 +1154,7 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
         if ( pdata->flState & WTS_GUI_FOCUS4 ) {
             // underline the text if this area has focus
             GpiQueryCurrentPosition( hps, &ptl2 );
-            ptl.x = rclLeft.xLeft + lTxtInset;
+            ptl.x = rclRight.xLeft + lTxtInset;
             ptl.y = ptl2.y - min( 2, fm.lUnderscorePosition );
             ptl2.y = ptl.y;
             GpiSetLineType( hps, LINETYPE_SOLID );
@@ -1165,7 +1173,7 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
         if ( pdata->flState & WTS_GUI_FOCUS4 ) {
             // underline the text if this area has focus
             GpiQueryCurrentPosition( hps, &ptl2 );
-            ptl.x = rclLeft.xLeft + lTxtInset;
+            ptl.x = rclRight.xLeft + lTxtInset;
             ptl.y = ptl2.y - min( 2, fm.lUnderscorePosition );
             ptl2.y = ptl.y;
             GpiSetLineType( hps, LINETYPE_SOLID );

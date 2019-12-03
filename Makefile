@@ -9,7 +9,7 @@
     NLV = 001
 !endif
 
-BL_NAME = "Universal Clock for OS/2 (NLV $(NLV))"
+BL_NAME = "Universal Clock for OS/2 (country $(NLV))"
 BL_VEND = "Alex Taylor"
 
 CC     = icc.exe
@@ -46,13 +46,13 @@ ICONS  = program.ico up.ico down.ico
 
 all         : $(NAME).exe $(NAME).hlp
 
-wtdpanel.obj: wtdpanel.c wtdpanel.h ids.h Makefile
+wtdpanel.obj: wtdpanel.c wtdpanel.h Makefile
 
 uclock.obj  : uclock.c $(NAME).h wtdpanel.h ids.h Makefile
 
 cfg_prog.obj: cfg_prog.c $(NAME).h wtdpanel.h ids.h Makefile
 
-cfg_clk.obj:  cfg_clk.c $(NAME).h wtdpanel.h ids.h Makefile
+cfg_clk.obj : cfg_clk.c $(NAME).h wtdpanel.h ids.h Makefile
 
 $(NAME).exe : $(OBJS) $(NAME).h ids.h wtdpanel.h $(NAME).res Makefile
                 -touch $(NAME).def
