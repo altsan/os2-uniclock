@@ -3,7 +3,7 @@
 #
 # Uncomment (or set via command line) to enable PMPRINTF debugging
 # (requires PMPRINTF, obviously).
-# PMPF = 1
+PMPF = 1
 
 !ifndef NLV
     NLV = 001

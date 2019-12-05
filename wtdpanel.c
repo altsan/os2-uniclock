@@ -186,42 +186,44 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             ptl.y = SHORT2FROMMP( mp1 );
             CycleDisplay( hwnd, ptl, pdata );
 
-            // Leave focus activation to the parent application
-            //WinSetFocus( HWND_DESKTOP, hwnd );
+            // ? Leave focus activation to the parent application?
+            // break;
+            WinSetFocus( HWND_DESKTOP, hwnd );
             return (MRESULT) TRUE;
             // WM_BUTTON1CLICK
 
 
         case WM_CHAR:
+            pdata = WinQueryWindowPtr( hwnd, 0 );
             fsFlags = SHORT1FROMMP( mp1 );
             if ( fsFlags & KC_KEYUP ) break;    // don't process key-up events
 
             // we are only interested in virtual keys
             if (( fsFlags & KC_VIRTUALKEY ) != KC_VIRTUALKEY ) break;
 
-            //ch   = (CHAR)( SHORT1FROMMP( mp2 ) & 0xFF );
             usVK = SHORT2FROMMP( mp2 );
             switch ( usVK ) {
 
                 case VK_LEFT:
                 case VK_UP:
                     // left/up arrow: previous focus area
+                    _PmpfF(("%s (%X): selecting previous field", pdata->szDesc, hwnd ));
                     if ( pdata->flOptions & WTF_MODE_COMPACT ) {
                         // In compact mode, only FOCUS1 and FOCUS4 will be used
-                        if ( pdata->flState & WTS_GUI_FOCUS1 ) {
+                        if ( pdata->flState & WTS_GUI_FOCUS4 ) {
                             pdata->flState &= ~WTS_GUI_FOCUSALL;
-                            pdata->flState |= WTS_GUI_FOCUS4;
+                            pdata->flState |= WTS_GUI_FOCUS1;
                         }
                         else {
                             pdata->flState &= ~WTS_GUI_FOCUSALL;
-                            pdata->flState |= WTS_GUI_FOCUS1;
+                            pdata->flState |= WTS_GUI_FOCUS4;
                         }
                     }
                     else {
                         // In standard mode, FOCUS1, FOCUS2 and FOCUS4 are used for now
-                        if ( pdata->flState & WTS_GUI_FOCUS1 ) {
+                        if ( pdata->flState & WTS_GUI_FOCUS2 ) {
                             pdata->flState &= ~WTS_GUI_FOCUSALL;
-                            pdata->flState |= WTS_GUI_FOCUS4;
+                            pdata->flState |= WTS_GUI_FOCUS1;
                         }
                         else if ( pdata->flState & WTS_GUI_FOCUS4 ) {
                             pdata->flState &= ~WTS_GUI_FOCUSALL;
@@ -229,7 +231,7 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                         }
                         else {
                             pdata->flState &= ~WTS_GUI_FOCUSALL;
-                            pdata->flState |= WTS_GUI_FOCUS1;
+                            pdata->flState |= WTS_GUI_FOCUS4;
                         }
                     }
                     break;
@@ -237,6 +239,7 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                 case VK_RIGHT:
                 case VK_DOWN:
                     // right/down arrow: next focus area
+                    _PmpfF(("%s (%X): selecting next field", pdata->szDesc, hwnd ));
                     if ( pdata->flOptions & WTF_MODE_COMPACT ) {
                         // In compact mode, only FOCUS1 and FOCUS4 will be used
                         if ( pdata->flState & WTS_GUI_FOCUS1 ) {
@@ -298,11 +301,15 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             pdata = WinQueryWindowPtr( hwnd, 0 );
             pdata->flState &= ~WTS_GUI_FOCUSALL;
             if ( (USHORT)mp2 == TRUE ) {
+                _PmpfF(("%s (%X): Got focus", pdata->szDesc, hwnd ));
                 pdata->flState |= WTS_GUI_HILITE;
-                pdata->flState |= WTS_GUI_FOCUS1;
+                // Don't start with any field selected
+                // pdata->flState |= WTS_GUI_FOCUS1;
             }
-            else
+            else {
+                _PmpfF(("%s (%X): Lost focus", pdata->szDesc, hwnd ));
                 pdata->flState &= ~WTS_GUI_HILITE;
+            }
             WinInvalidateRect( hwnd, NULL, FALSE );
             break;
 
@@ -365,6 +372,7 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
             // paint the borders, if applicable
             GpiSetColor( hps, clrBor );
+            GpiSetLineType( hps, LINETYPE_SOLID );
             if ( pdata->flOptions & WTF_BORDER_LEFT ) {
                 ptl.x = 0; ptl.y = 0;
                 GpiMove( hps, &ptl );
@@ -396,8 +404,9 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
             // draw the selection highlight, if applicable
             if ( pdata->flState & WTS_GUI_HILITE ) {
+                PmpfF(("%s (%X) is highlighted", pdata->szDesc, hwnd ));
                 GpiSetColor( hps, clrFG & ~0x484848 );
-                GpiSetLineType( hps, LINETYPE_SOLID );
+                GpiSetLineType( hps, LINETYPE_ALTERNATE );
                 ptl.x = ( pdata->flOptions & WTF_BORDER_LEFT )? 1: 0;
                 ptl.y = ( pdata->flOptions & WTF_BORDER_BOTTOM )? 1: 0;
                 GpiMove( hps, &ptl );
@@ -473,12 +482,14 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
                 // generate formatted time and date strings
                 if ( pdata->locale && ltime ) {
-                    if ( FormatTime( hwnd, pdata, ltime, pdata->uzTime, pdata->szTime ))
-                        WinInvalidateRect( hwnd, &(pdata->rclTime), FALSE );
                     if ( FormatDate( hwnd, pdata, ltime )) {
                         WinInvalidateRect( hwnd, &(pdata->rclDate), FALSE );
                         SetSunTimes( hwnd, pdata );
                     }
+                    // if ( FormatTime( hwnd, pdata, ltime, pdata->uzTime, pdata->szTime ))
+                    //      WinInvalidateRect( hwnd, &(pdata->rclTime), FALSE );
+                    FormatTime( hwnd, pdata, ltime, pdata->uzTime, pdata->szTime );
+                    WinInvalidateRect( hwnd, NULL, FALSE );
                 }
 
             }
@@ -1125,6 +1136,17 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
         ptl.y = rclLeft.yBottom + lTxtOffset;
         GpiCharStringPosAt( hps, &ptl, &rclLeft, CHS_CLIP, cb, pchText, NULL );
         if ( pdata->flState & WTS_GUI_FOCUS1 ) {
+#ifdef FOCUS_FIELD_OUTLINE
+            // outline the text if this area has focus
+            GpiQueryCurrentPosition( hps, &ptl2 );
+            ptl.x = rclLeft.xLeft + lTxtInset - min( 2, lTxtInset );
+            ptl.y = max( rclLeft.yBottom + 1, ptl2.y - fm.lMaxDescender );
+            ptl2.x += min( 2, lTxtInset );
+            ptl2.y = min( rclLeft.yTop - 1, ptl2.y + fm.lMaxAscender );
+            GpiSetLineType( hps, LINETYPE_ALTERNATE );
+            GpiMove( hps, &ptl );
+            GpiBox( hps, DRO_OUTLINE, &ptl2, 0, 0 );
+#else
             // underline the text if this area has focus
             GpiQueryCurrentPosition( hps, &ptl2 );
             ptl.x = rclLeft.xLeft + lTxtInset;
@@ -1133,6 +1155,7 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
             GpiSetLineType( hps, LINETYPE_SOLID );
             GpiMove( hps, &ptl );
             GpiLine( hps, &ptl2 );
+#endif
         }
     }
 
@@ -1144,6 +1167,17 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
         ptl.y = rclRight.yBottom + lTxtOffset;
         GpiCharStringPosAt( hps, &ptl, &rclDateTime, CHS_CLIP, cb, pchText, NULL );
         if ( pdata->flState & WTS_GUI_FOCUS4 ) {
+#ifdef FOCUS_FIELD_OUTLINE
+            // outline the text if this area has focus
+            GpiQueryCurrentPosition( hps, &ptl2 );
+            ptl.x = rclRight.xLeft + lTxtInset - min( 2, lTxtInset );
+            ptl.y = max( rclRight.yBottom + 1, ptl2.y - fm.lMaxDescender );
+            ptl2.x += min( 2, lTxtInset );
+            ptl2.y = min( rclRight.yTop - 1, ptl2.y + fm.lMaxAscender );
+            GpiSetLineType( hps, LINETYPE_ALTERNATE );
+            GpiMove( hps, &ptl );
+            GpiBox( hps, DRO_OUTLINE, &ptl2, 0, 0 );
+#else
             // underline the text if this area has focus
             GpiQueryCurrentPosition( hps, &ptl2 );
             ptl.x = rclRight.xLeft + lTxtInset;
@@ -1152,6 +1186,7 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
             GpiSetLineType( hps, LINETYPE_SOLID );
             GpiMove( hps, &ptl );
             GpiLine( hps, &ptl2 );
+#endif
         }
     }
 
@@ -1163,6 +1198,17 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
         ptl.y = rclRight.yBottom + lTxtOffset;
         GpiCharStringPosAt( hps, &ptl, &rclDateTime, CHS_CLIP, cb, pchText, NULL );
         if ( pdata->flState & WTS_GUI_FOCUS4 ) {
+#ifdef FOCUS_FIELD_OUTLINE
+            // outline the text if this area has focus
+            GpiQueryCurrentPosition( hps, &ptl2 );
+            ptl.x = rclRight.xLeft + lTxtInset - min( 2, lTxtInset );
+            ptl.y = max( rclRight.yBottom + 1, ptl2.y - fm.lMaxDescender );
+            ptl2.x += min( 2, lTxtInset );
+            ptl2.y = min( rclRight.yTop - 1, ptl2.y + fm.lMaxAscender );
+            GpiSetLineType( hps, LINETYPE_ALTERNATE );
+            GpiMove( hps, &ptl );
+            GpiBox( hps, DRO_OUTLINE, &ptl2, 0, 0 );
+#else
             // underline the text if this area has focus
             GpiQueryCurrentPosition( hps, &ptl2 );
             ptl.x = rclRight.xLeft + lTxtInset;
@@ -1171,6 +1217,7 @@ void Paint_CompactView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
             GpiSetLineType( hps, LINETYPE_SOLID );
             GpiMove( hps, &ptl );
             GpiLine( hps, &ptl2 );
+#endif
         }
     }
 

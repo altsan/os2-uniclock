@@ -147,7 +147,7 @@
 #define WTS_GUI_FOCUS2          0x20000000  // draw focus for second sub-area (mid-left)
 #define WTS_GUI_FOCUS3          0x40000000  // draw focus for third sub-area (mid-right)
 #define WTS_GUI_FOCUS4          0x80000000  // draw focus for fourth sub-area (right or bottom)
-#define WTS_GUI_FOCUSALL        0xFF000000  // shorthand for all focus bits
+#define WTS_GUI_FOCUSALL        0xF0000000  // shorthand for all focus bits
 
 
 // ----------------------------------------------------------------------------

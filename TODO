@@ -5,7 +5,7 @@ For v1.0:
 * Split uclock.c into more source files.
 * Save selected zone in clock settings.
 * Program settings: support reordering of existing clocks.
-* Fix drawing of borders in multiple-column layout.
++ Fix drawing of borders in multiple-column layout.
 - Keyboard support.
 - Time conversion utility.
 
