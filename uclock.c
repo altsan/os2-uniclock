@@ -5,6 +5,7 @@
  * basic application window/logic.                                          *
  *                                                                          *
  ****************************************************************************
+ *                                                                          *
  *  This program is free software; you can redistribute it and/or modify    *
  *  it under the terms of the GNU General Public License as published by    *
  *  the Free Software Foundation; either version 2 of the License, or       *
@@ -44,8 +45,6 @@
 #include "ids.h"
 
 
-// ----------------------------------------------------------------------------
-// CONSTANTS
 
 /* ------------------------------------------------------------------------- *
  * Main program (including initialization, message loop, and final cleanup)  *
@@ -194,9 +193,12 @@ MRESULT EXPENTRY MainWndProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
     SWP        swp;
     RECTL      rcl;
     POINTL     ptl;
-    USHORT     i;
+    USHORT     fsFlags,               // WM_CHAR flags
+               usVK,                  // WM_CHAR virtual-key code
+               i;
     CHAR       szRes[ SZRES_MAXZ ],   // buffer for string resources
                szMsg[ SZRES_MAXZ ];   // buffer for popup message
+    HWND       hwndFocus;
 
 
     switch( msg ) {
@@ -208,20 +210,93 @@ MRESULT EXPENTRY MainWndProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             break;
 
 
+        // MB1 click on a clock panel - give it focus
+        case WM_BUTTON1CLICK:
+            pGlobal = WinQueryWindowPtr( hwnd, 0 );
+            ptl.x = SHORT1FROMMP( mp1 );
+            ptl.y = SHORT2FROMMP( mp1 );
+
+            // Find out which clock panel generated the click event
+            pGlobal->usMsgClock = 0xFFFF;
+            for ( i = 0; i < pGlobal->usClocks; i++ ) {
+                if ( pGlobal->clocks[i] && WinQueryWindowPos( pGlobal->clocks[i], &swp )) {
+                    rcl.xLeft   = swp.x;
+                    rcl.yBottom = swp.y;
+                    rcl.xRight  = rcl.xLeft + swp.cx;
+                    rcl.yTop    = rcl.yBottom + swp.cy;
+                    if ( WinPtInRect( pGlobal->hab, &rcl, &ptl )) {
+                        pGlobal->usMsgClock = i;
+                        break;
+                    }
+                }
+            }
+            _PmpfF(("Button 1 click in clock: %u", pGlobal->usMsgClock ));
+
+            // Give the focus to that clock
+            if ( pGlobal->usMsgClock < pGlobal->usClocks )
+                WinSetFocus( HWND_DESKTOP, pGlobal->clocks[ pGlobal->usMsgClock ] );
+            return (MRESULT) TRUE;
+
+
+        // Key press which wasn't handled by a clock panel (i.e. tab or shift-tab)
+        case WM_CHAR:
+            pGlobal = WinQueryWindowPtr( hwnd, 0 );
+            fsFlags = SHORT1FROMMP( mp1 );
+            if ( fsFlags & KC_KEYUP ) break;    // don't process key-up events
+
+            // we are only interested in virtual keys
+            if (( fsFlags & KC_VIRTUALKEY ) != KC_VIRTUALKEY ) break;
+
+            if ( !pGlobal->usClocks ) break;
+
+            usVK = SHORT2FROMMP( mp2 );
+
+            // get the current focus window
+            hwndFocus = WinQueryFocus( HWND_DESKTOP );
+            for ( i = 0; i < pGlobal->usClocks; i++ ) {
+                if ( hwndFocus == pGlobal->clocks[i] ) break;
+            }
+            _PmpfF(("(%X) Clock %u (%X) has focus.", mp2, i, hwndFocus ));
+
+            if ( usVK == VK_BACKTAB ) //||
+            //    (( fsFlags & KC_SHIFT ) && ( SHORT1FROMMP( mp2 ) == 9 )))
+            {
+                // Shift+Tab: switch focus to previous (higher numbered) clock
+                i++;
+                if (( hwndFocus == NULLHANDLE ) || ( i >= pGlobal->usClocks ))
+                    i = 0;
+            }
+            else if ( usVK == VK_TAB ) {
+                // Tab: switch focus to next (lower numbered) clock
+                if (( hwndFocus == NULLHANDLE ) || ( i < 1 ))
+                    i = pGlobal->usClocks - 1;
+                else
+                    i--;
+            }
+            else break;
+
+            _PmpfF(("Setting focus to clock %u (%X).", i, pGlobal->clocks[ i ] ));
+            if ( pGlobal->clocks[ i ] )
+                WinSetFocus( HWND_DESKTOP, pGlobal->clocks[ i ] );
+            break;
+
+
         // Do nothing here (initial setup is called from main after this returns)
         case WM_CREATE:
             return (MRESULT) FALSE;
 
 
+        // Menu commands
         case WM_COMMAND:
             switch( SHORT1FROMMP( mp1 )) {
 
-                case ID_CONFIG:
+                case ID_CONFIG:                 // Program settings
                     ConfigNotebook( hwnd );
+                    // We don't use this (it caused problems)
                     //  WinPostMsg( hwnd, WM_SAVEAPPLICATION, 0, 0 );
                     break;
 
-                case ID_CLOCKCFG:
+                case ID_CLOCKCFG:               // Clock properties
                     pGlobal = WinQueryWindowPtr( hwnd, 0 );
                     if ( pGlobal->usMsgClock < pGlobal->usClocks ) {
                         ClockNotebook( hwnd, pGlobal->usMsgClock );
@@ -230,7 +305,7 @@ MRESULT EXPENTRY MainWndProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                     }
                     break;
 
-                case ID_CLOCKADD:
+                case ID_CLOCKADD:               // Add clock
                     pGlobal = WinQueryWindowPtr( hwnd, 0 );
                     if (pGlobal->usClocks < MAX_CLOCKS)
                     {
@@ -241,7 +316,7 @@ MRESULT EXPENTRY MainWndProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
                     break;
 
-                case ID_CLOCKDEL:
+                case ID_CLOCKDEL:               // Delete clock
                     pGlobal = WinQueryWindowPtr( hwnd, 0 );
                     if ( pGlobal->usMsgClock < pGlobal->usClocks ) {
                         if ( ! WinLoadString( pGlobal->hab, NULLHANDLE, IDS_PROMPT_DELETE, SZRES_MAXZ-1, szRes ))
@@ -273,6 +348,7 @@ MRESULT EXPENTRY MainWndProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             return (MRESULT) 0;
 
 
+        // MB2 clicked on a clock panel - show the popup menu
         case WM_CONTEXTMENU:
             pGlobal = WinQueryWindowPtr( hwnd, 0 );
             ptl.x = SHORT1FROMMP( mp1 );

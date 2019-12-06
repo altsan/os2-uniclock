@@ -186,10 +186,20 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             ptl.y = SHORT2FROMMP( mp1 );
             CycleDisplay( hwnd, ptl, pdata );
 
-            // ? Leave focus activation to the parent application?
-            // break;
+            // Leave focus activation to the parent application
+#if 0
             WinSetFocus( HWND_DESKTOP, hwnd );
             return (MRESULT) TRUE;
+#else
+            ptl.x = SHORT1FROMMP( mp1 );
+            ptl.y = SHORT2FROMMP( mp1 );
+            WinMapWindowPoints( hwnd, WinQueryWindow(hwnd, QW_OWNER), &ptl, 1 );
+            pts.x = ptl.x;
+            pts.y = ptl.y;
+            WinPostMsg( WinQueryWindow(hwnd, QW_OWNER),
+                        WM_BUTTON1CLICK, MPFROM2SHORT(pts.x, pts.y), mp2 );
+            break;
+#endif
             // WM_BUTTON1CLICK
 
 
@@ -287,8 +297,7 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
                 case VK_TAB:
                 case VK_BACKTAB:
-                    // Pass up to the owner so it can handle focus switching
-                    WinPostMsg( WinQueryWindow(hwnd, QW_OWNER), msg, mp1, mp2 );
+                    // These are left to the owner so it can handle focus switching
                     break;
 
             }
@@ -301,13 +310,11 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             pdata = WinQueryWindowPtr( hwnd, 0 );
             pdata->flState &= ~WTS_GUI_FOCUSALL;
             if ( (USHORT)mp2 == TRUE ) {
-                _PmpfF(("%s (%X): Got focus", pdata->szDesc, hwnd ));
                 pdata->flState |= WTS_GUI_HILITE;
                 // Don't start with any field selected
                 // pdata->flState |= WTS_GUI_FOCUS1;
             }
             else {
-                _PmpfF(("%s (%X): Lost focus", pdata->szDesc, hwnd ));
                 pdata->flState &= ~WTS_GUI_HILITE;
             }
             WinInvalidateRect( hwnd, NULL, FALSE );
@@ -404,7 +411,6 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
             // draw the selection highlight, if applicable
             if ( pdata->flState & WTS_GUI_HILITE ) {
-                PmpfF(("%s (%X) is highlighted", pdata->szDesc, hwnd ));
                 GpiSetColor( hps, clrFG & ~0x484848 );
                 GpiSetLineType( hps, LINETYPE_ALTERNATE );
                 ptl.x = ( pdata->flOptions & WTF_BORDER_LEFT )? 1: 0;
@@ -482,14 +488,14 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
                 // generate formatted time and date strings
                 if ( pdata->locale && ltime ) {
+                    if ( FormatTime( hwnd, pdata, ltime, pdata->uzTime, pdata->szTime ))
+                         WinInvalidateRect( hwnd, &(pdata->rclTime), FALSE );
                     if ( FormatDate( hwnd, pdata, ltime )) {
                         WinInvalidateRect( hwnd, &(pdata->rclDate), FALSE );
                         SetSunTimes( hwnd, pdata );
                     }
-                    // if ( FormatTime( hwnd, pdata, ltime, pdata->uzTime, pdata->szTime ))
-                    //      WinInvalidateRect( hwnd, &(pdata->rclTime), FALSE );
-                    FormatTime( hwnd, pdata, ltime, pdata->uzTime, pdata->szTime );
-                    WinInvalidateRect( hwnd, NULL, FALSE );
+                    //FormatTime( hwnd, pdata, ltime, pdata->uzTime, pdata->szTime );
+                    //WinInvalidateRect( hwnd, NULL, FALSE );
                 }
 
             }
@@ -786,7 +792,9 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     CHAR        szFont[ FACESIZE+4 ];   // current font pres.param
     PSZ         pszFontName;            // requested font family
     PCH         pchText;                // pointer to current output text
-    POINTL      ptl;                    // current drawing position
+    POINTL      ptl,                    // current drawing position
+                ptl2,                   // target drawing position
+                aptl[ TXTBOX_COUNT ];   // time string text box
     RECTL       rclTop,                 // area of top (description) region == pdata->rclDesc
                 rclMiddle,              // area of middle region
                 rclTime,                // area of time display in the middle region == pdata->rclTime
@@ -891,6 +899,16 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
         ptl.x = rclTop.xLeft + lTmInset;
         ptl.y = rclTop.yBottom + lTBOffset;
         GpiCharStringPosAt( hps, &ptl, &rclTop, CHS_CLIP, cb, pchText, NULL );
+        if ( pdata->flState & WTS_GUI_FOCUS1 ) {
+            // underline the text if this area has focus
+            GpiQueryCurrentPosition( hps, &ptl2 );
+            ptl.x = rclTop.xLeft + lTmInset;
+            ptl.y = ptl2.y - max( 2, fm.lUnderscorePosition );
+            ptl2.y = ptl.y;
+            GpiSetLineType( hps, LINETYPE_SOLID );
+            GpiMove( hps, &ptl );
+            GpiLine( hps, &ptl2 );
+        }
     }
 
     // draw the bottom area text
@@ -924,6 +942,16 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
             ptl.x = rclBottom.xLeft + lTmInset;
             ptl.y = rclBottom.yBottom + lTBOffset;
             GpiCharStringPosAt( hps, &ptl, &rclBottom, CHS_CLIP, cb, pchText, NULL );
+        }
+        if ( pdata->flState & WTS_GUI_FOCUS4 ) {
+            // underline the text if this area has focus
+            GpiQueryCurrentPosition( hps, &ptl2 );
+            ptl.x = rclBottom.xLeft + lTmInset;
+            ptl.y = ptl2.y - max( 2, fm.lUnderscorePosition );
+            ptl2.y = ptl.y;
+            GpiSetLineType( hps, LINETYPE_SOLID );
+            GpiMove( hps, &ptl );
+            GpiLine( hps, &ptl2 );
         }
     }
 
@@ -962,16 +990,32 @@ void Paint_DefaultView( HWND hwnd, HPS hps, RECTL rcl, LONG clrBG, LONG clrFG, L
     if ( pdata->uzTime[0] ) {
         if ( fbType == FTYPE_BITMAP )
             GpiSetCharSet( hps, 2L );
-        sfCell.cy = MAKEFIXED( lCell, 0 );
-        sfCell.cx = sfCell.cy;
-        GpiSetCharBox( hps, &sfCell );
-
+        else {
+            sfCell.cy = MAKEFIXED( lCell, 0 );
+            sfCell.cx = sfCell.cy;
+            GpiSetCharBox( hps, &sfCell );
+        }
         pchText = bUnicode ? (PCH) pdata->uzTime : (PCH) pdata->szTime;
         cb = bUnicode ? UniStrlen(pdata->uzTime) * 2 : strlen( pdata->szTime );
         ptl.x = rclTime.xLeft + ((rclTime.xRight - rclTime.xLeft) / 2);
         ptl.y = rclTime.yBottom + (lTmHeight / 2);
-        GpiSetTextAlignment( hps, TA_CENTER, TA_HALF );
+        // Using GPI text alignment to centre the string automatically makes
+        // GpiQueryCurrentPosition() not work the way we need, so we will
+        // centre the string ourselves.
+        GpiQueryTextBox( hps, cb, pchText, TXTBOX_COUNT, aptl );
+        ptl.x -= aptl[ TXTBOX_BOTTOMRIGHT ].x / 2;
+        ptl.y -= aptl[ TXTBOX_TOPRIGHT ].y / 2;
         GpiCharStringPosAt( hps, &ptl, &rclTime, CHS_CLIP, cb, pchText, NULL );
+        if ( pdata->flState & WTS_GUI_FOCUS2 ) {
+            // underline the text if this area has focus
+            GpiQueryCurrentPosition( hps, &ptl2 );
+            ptl.x = ptl2.x - aptl[ TXTBOX_BOTTOMRIGHT ].x;
+            ptl.y = ptl2.y - max( 2, fm.lUnderscorePosition );
+            ptl2.y = ptl.y;
+            GpiSetLineType( hps, LINETYPE_SOLID );
+            GpiMove( hps, &ptl );
+            GpiLine( hps, &ptl2 );
+        }
     }
 
     // draw the separator line for the top region
