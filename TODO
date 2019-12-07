@@ -6,7 +6,7 @@ For v1.0:
 * Save selected zone in clock settings.
 * Program settings: support reordering of existing clocks.
 * Keyboard support.
-+ Fix drawing of borders in multiple-column layout.
+* Fix drawing of borders in multiple-column layout.
 - Time conversion utility.
 
 TBD:

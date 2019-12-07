@@ -411,7 +411,7 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 
             // draw the selection highlight, if applicable
             if ( pdata->flState & WTS_GUI_HILITE ) {
-                GpiSetColor( hps, clrFG & ~0x484848 );
+                GpiSetColor( hps, clrFG /*& ~0x484848*/ );
                 GpiSetLineType( hps, LINETYPE_ALTERNATE );
                 ptl.x = ( pdata->flOptions & WTF_BORDER_LEFT )? 1: 0;
                 ptl.y = ( pdata->flOptions & WTF_BORDER_BOTTOM )? 1: 0;

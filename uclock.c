@@ -256,11 +256,8 @@ MRESULT EXPENTRY MainWndProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             for ( i = 0; i < pGlobal->usClocks; i++ ) {
                 if ( hwndFocus == pGlobal->clocks[i] ) break;
             }
-            _PmpfF(("(%X) Clock %u (%X) has focus.", mp2, i, hwndFocus ));
 
-            if ( usVK == VK_BACKTAB ) //||
-            //    (( fsFlags & KC_SHIFT ) && ( SHORT1FROMMP( mp2 ) == 9 )))
-            {
+            if ( usVK == VK_BACKTAB ) {
                 // Shift+Tab: switch focus to previous (higher numbered) clock
                 i++;
                 if (( hwndFocus == NULLHANDLE ) || ( i >= pGlobal->usClocks ))
@@ -669,18 +666,27 @@ void ResizeClocks( HWND hwnd )
  * ------------------------------------------------------------------------- */
 void UpdateClockBorders( PUCLGLOBAL pGlobal )
 {
-    LONG   flOpts;
-    USHORT i, ccount;
+    LONG   flOpts;      // Clock panel options mask
+    USHORT i,           // Loop/index counter
+           cpos,        // Position of current clock in column (0 = bottom)
+           cnum;        // Current column number (0 = leftmost)
 
-    for ( i = 0, ccount = 0; i < pGlobal->usClocks; i++, ccount++ ) {
+    for ( i = 0, cpos = 0, cnum = 0; i < pGlobal->usClocks; i++, cpos++ ) {
         if ( !pGlobal->clocks[i] ) break;
         flOpts = (ULONG) WinSendMsg( pGlobal->clocks[i], WTD_QUERYOPTIONS, 0, 0 );
         flOpts |= WTF_BORDER_FULL;
-        // Turn off the bottom border for all but the bottom-most clock in each column
-        if ( pGlobal->usPerColumn && ( ccount >= pGlobal->usPerColumn ))
-            ccount = 0;
-        if ( ccount )
+
+        /* Turn off the bottom border for all but the bottom-most clock in each
+         * column, and the left border for all but the first column.
+         */
+        if ( pGlobal->usPerColumn && ( cpos >= pGlobal->usPerColumn )) {
+            cpos = 0;
+            cnum++;
+        }
+        if ( cpos )
             flOpts &= ~WTF_BORDER_BOTTOM;
+        if ( cnum )
+            flOpts &= ~WTF_BORDER_LEFT;
         WinSendMsg( pGlobal->clocks[i], WTD_SETOPTIONS, MPFROMLONG(flOpts), 0 );
     }
 }

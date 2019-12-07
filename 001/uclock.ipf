@@ -301,7 +301,8 @@ percentage of the clock panel width.
 :dt.Clock panel arrangement
 :dd.This allows you to control the arrangement of clock panels into columns.
 By default (value 0), all clocks are arranged in a single column, with the
-first clock at the bottom.
+first clock at the bottom. When clocks are arranged in multiple columns, the
+first clock will appear on the bottom left.
 :p.The list box shows a summary of all currently-defined clock panels. Here
 you can change the order of the clock panels. Clocks are shown in the same
 order in which they would appear in a single-column view, with clock 1 at
