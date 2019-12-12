@@ -187,19 +187,19 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             CycleDisplay( hwnd, ptl, pdata );
 
             // Leave focus activation to the parent application
-#if 0
-            WinSetFocus( HWND_DESKTOP, hwnd );
-            return (MRESULT) TRUE;
-#else
             ptl.x = SHORT1FROMMP( mp1 );
             ptl.y = SHORT2FROMMP( mp1 );
             WinMapWindowPoints( hwnd, WinQueryWindow(hwnd, QW_OWNER), &ptl, 1 );
             pts.x = ptl.x;
             pts.y = ptl.y;
+#if 0
             WinPostMsg( WinQueryWindow(hwnd, QW_OWNER),
                         WM_BUTTON1CLICK, MPFROM2SHORT(pts.x, pts.y), mp2 );
-            break;
+#else
+            WinPostMsg( WinQueryWindow(hwnd, QW_OWNER), WTN_BUTTON1CLICK,
+                        MPFROM2SHORT(pts.x, pts.y), (MPARAM) hwnd );
 #endif
+            break;
             // WM_BUTTON1CLICK
 
 
@@ -331,8 +331,13 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             WinMapWindowPoints( hwnd, WinQueryWindow(hwnd, QW_OWNER), &ptl, 1 );
             pts.x = ptl.x;
             pts.y = ptl.y;
+#if 0
             WinPostMsg( WinQueryWindow(hwnd, QW_OWNER),
                         WM_CONTEXTMENU, MPFROM2SHORT(pts.x, pts.y), mp2 );
+#else
+            WinPostMsg( WinQueryWindow(hwnd, QW_OWNER), WTN_CONTEXTMENU,
+                        MPFROM2SHORT(pts.x, pts.y), (MPARAM) hwnd );
+#endif
             break;
 
 
@@ -760,6 +765,22 @@ MRESULT EXPENTRY WTDisplayProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
         case WTD_QUERYOPTIONS:
             pdata = WinQueryWindowPtr( hwnd, 0 );
             return (MRESULT) pdata->flOptions;
+
+
+        /* .................................................................. *
+         * WTD_QUERYSTATE                                                     *
+         *                                                                    *
+         *   - mp1 (not used)                                                 *
+         *   - mp2 (not used)                                                 *
+         *                                                                    *
+         * Return the current state flags (flState)                           *
+         *                                                                    *
+         * Returns: ULONG                                                     *
+         *  Current value of the flState field in WTDDATA.                    *
+         * .................................................................. */
+        case WTD_QUERYSTATE:
+            pdata = WinQueryWindowPtr( hwnd, 0 );
+            return (MRESULT) pdata->flState;
 
     }
 

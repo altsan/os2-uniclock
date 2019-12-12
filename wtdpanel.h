@@ -68,6 +68,27 @@
 #define WTD_QUERYCONFIG         ( WM_USER + 110 )
 #define WTD_QUERYOPTIONS        ( WM_USER + 111 )
 #define WTD_SETINDICATORS       ( WM_USER + 112 )
+#define WTD_QUERYSTATE          ( WM_USER + 113 )
+
+
+// Notification messages for world-time display control
+/* .................................................................. *
+ * WTN_BUTTON1CLICK                                                   *
+ * Notify owner when this control receives a MB1 click event.         *
+ *   mp1: (SHORT) X position where click occurred.                    *
+ *        (SHORT) Y position where click occurred.                    *
+ *   mp2: (HWND) Handle of this WTDPanel control                      *
+ * .................................................................. */
+#define WTN_BUTTON1CLICK        ( WM_USER + 150 )
+
+/* .................................................................. *
+ * WTN_CONTEXTMENU                                                    *
+ * Notify owner when this control receives a context-menu event.      *
+ *   mp1: (SHORT) X position where MB2 click occurred.                *
+ *        (SHORT) Y position where MB2 click occurred.                *
+ *   mp2: (HWND) Handle of this WTDPanel control                      *
+ * .................................................................. */
+#define WTN_CONTEXTMENU         ( WM_USER + 151 )
 
 
 // Custom presentation parameters for the world-time display control

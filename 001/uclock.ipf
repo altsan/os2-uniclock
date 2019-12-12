@@ -204,8 +204,8 @@ then this option is the same as &osq.Locale default&csq..
 :edl.
 :p.For the &osq.System default&csq. and &osq.Locale default&csq.
 format styles, you have the option of disabling the seconds display.
-(Due to the extreme variability of &osq.Locale alternative&csq. style,
-it does not support this option.)
+(Due to the extreme variability of the &osq.Locale alternative&csq.
+style, it does not support this option.)
 For the &osq.Custom string&csq. style, display of seconds is controlled
 by the specified format string.
 
@@ -239,6 +239,15 @@ this option is the same as &osq.Locale default&csq..
 :dd.Controls the display font used by this clock. You can drag a font
 into the preview area from the OS/2 Font Palette, or select a font using
 the :hp1.Font:ehp1. button.
+:p.The font size is determined automatically by the size of the clock panel
+(in both standard and compact views). However, keep in mind that bitmap
+fonts are not infinitely scalable, so selecting a bitmap font will limit the
+extent to which the font size can change.
+:p.If you select a :link reftype=fn refid=unicode_font.Unicode-capable
+font:elink., the panel text will automatically be rendered in Unicode rather
+than the current codepage. This is generally desirable if you use descriptions
+or formatting strings that contain characters not normally supported by your
+system codepage.
 
 :dt.Colours
 :dd.Controls various colours used by this clock. For each colour setting,
@@ -253,10 +262,150 @@ or use the buttons to select a colour.
 
 
 :fn id=strftime.
-:p.For details of the format string syntax, see the description of the
-:hp2.UniStrftime:ehp2. function in the Universal Language Support section
-of the OS/2 toolkit; or else refer to any modern C library's
-:hp2.strftime:ehp2. specification.
+:p.The format string syntax is as per the :hp2.UniStrftime:ehp2. function in
+the Universal Language Support API. It is summarized in brief below.
+
+:p.The format string contains two types of objects&colon. literal characters
+and substitution symbols (also known as conversion specifiers). Substitution
+symbols consist of a &percent. (percent sign), followed by one or two characters
+which indicate what value will be inserted into the text at this position.
+The available substitution symbols are&colon.
+:dl tsize=7.
+:dt.&percent.a
+:dd.The locale's abbreviated weekday name (e.g. Sun).
+:dt.&percent.A
+:dd.The locale's full weekday name (e.g. Sunday).
+:dt.&percent.b
+:dd.The locale's abbreviated month name (e.g. Jan).
+:dt.&percent.B
+:dd.The locale's full month name (e.g. January).
+:dt.&percent.c
+:dd.The locale's full date and time format.
+:dt.&percent.C
+:dd.The century as a decimal number (00-99).
+:dt.&percent.d
+:dd.The day of the month as a decimal number (01 to 31).
+:dt.&percent.D
+:dd.The date in &percent.m/&percent.d/&percent.y format (for example, 01/31/94).
+:dt.&percent.e
+:dd.The day of the month as a decimal number ( 1 to 31). A single digit is
+preceded by a space.
+:dt.&percent.h
+:dd.Same as &percent.b.
+:dt.&percent.H
+:dd.The 24-hour-clock hour as a decimal number (00 to 23).
+:dt.&percent.I
+:dd.The 12-hour-clock hour as a decimal number (01 to 12).
+:dt.&percent.j
+:dd.The day of the year as a decimal number (001 to 366).
+:dt.&percent.m
+:dd.The month of the year as a decimal number (01 to 12).
+:dt.&percent.M
+:dd.The minute of the hour as a decimal number (00 to 59).
+:dt.&percent.n
+:dd.Specifies a new-line character.
+:dt.&percent.p
+:dd.The locale's AM or PM string.
+:dt.&percent.r
+:dd.The time in AM/PM notation (equivalent to "&percent.I&colon.&percent.M&colon.&percent.S&percent.p").
+:dt.&percent.R
+:dd.The time in 24-hour-clock notation without seconds (equivalent to "&percent.H&colon.&percent.M").
+:dt.&percent.S
+:dd.The second of the minute as a decimal number (00 to 61).
+:dt.&percent.t
+:dd.Specifies a tab character.
+:dt.&percent.T
+:dd.The time in 24-hour-clock notation, with seconds (equivalent to "&percent.H&colon.&percent.M&colon.&percent.S").
+:dt.&percent.u
+:dd.The day of the week as a decimal number (1 to 7), where 1 represents Monday.
+:dt.&percent.U
+:dd.The week of the year as a decimal number (00 to 53), where the week starts on Sunday.
+:dt.&percent.V
+:dd.The week of the year as a decimal number (01 to 53), where the week starts on Monday.
+If the week containing 1 January has four or more days in the new year, then it is
+considered week 1; otherwise, it is week 53 of the previous year, and the next week is week 1.
+:dt.&percent.w
+:dd.The day of the week as a decimal number (0 to 6), where 0 represents Sunday.
+:dt.&percent.W
+:dd.The week of the year as a decimal number (00 to 53), where the week starts on Monday.
+All days in a new year preceding the first Sunday are considered to be week 0.
+:dt.&percent.x
+:dd.The locale's full date format.
+:dt.&percent.X
+:dd.The locale's full time format.
+:dt.&percent.y
+:dd.The year of the century (00 to 99).
+:dt.&percent.Y
+:dd.The year, including century, as a decimal number (e.g. 1994).
+:dt.&percent.Z
+:dd.The time-zone name or abbreviation if one can be determined (e.g. EST). Omitted
+if time zone information does not exist.
+:dt.&percent.&percent.
+:dd.Specifies a &percent. (percent) sign.
+:edl.
+
+:p.Some conversion specifiers can be modified by the E or O modifier characters
+to indicate that an alternative format or specification should be used rather
+than the one normally used by the unmodified conversion specifier. If the
+alternative format or specification does not exist for the current locale, the
+behavior will be as if the unmodified conversion specification were used.
+:dl tsize=7.
+:dt.&percent.Ec
+:dd.Locale's alternative date and time representation.
+:dt.&percent.EC
+:dd.The name of the base year (period) in the locale's alternative representation.
+:dt.&percent.Ex
+:dd.The locale's alternative date representation.
+:dt.&percent.EX
+:dd.The locale's alternative time representation.
+:dt.&percent.Ey
+:dd.The offset in years from &percent.EC in the locale's alternative representation.
+:dt.&percent.EY
+:dd.The full alternative year representation.
+:dt.&percent.Od
+:dd.The day of the month using the locale's alternative numeric symbols; filled as
+needed with leading zeros if there is any alternative symbol for zero, otherwise with
+leading spaces.
+:dt.&percent.Oe
+:dd.The day of the month in the locale's alternative numeric symbols, filled as needed
+with leading spaces.
+:dt.&percent.OH
+:dd.The hour in 24-hour-clock notation, using the locale's alternative numeric symbols.
+:dt.&percent.OI
+:dd.The hour in 12-hour-clock notation, using the locale's alternative numeric symbols.
+:dt.&percent.Om
+:dd.The month using the locale's alternative numeric symbols.
+:dt.&percent.OM
+:dd.The minutes using the locale's alternative numeric symbols.
+:dt.&percent.OS
+:dd.The seconds using the locale's alternative numeric symbols.
+:dt.&percent.Ou
+:dd.The weekday of the year (where Monday is 1) using the locale's alternative numeric symbols.
+:dt.&percent.OU
+:dd.The week number of the year (where Sunday is the first day of the week) in the locale's
+alternative numeric symbols.
+:dt.&percent.OV
+:dd.The week number of the year (where Monday is the first day of the week) in the locale's
+alternative numeric symbols. If the week containing 1 January has four or more days in the
+new year, then it is considered week 1; otherwise, it is week 53 of the previous year, and
+the next week is week 1.
+:dt.&percent.Ow
+:dd.The number of the weekday (where Sunday is 0) in the locale's alternative numeric symbols.
+:dt.&percent.OW
+:dd.The week number of the year (where Monday is the first day of the week) in the locale's
+alternative numeric symbols.
+:dt.&percent.Oy
+:dd.The year (offset from &percent.C) in the locale's alternative representation and using the
+locale's alternative numeric symbols.
+:edl.
+:efn.
+
+:fn id=unicode_font.
+:p.&osq.Unicode-capable&csq. means that the font contains a Unicode
+character mapping table (cmap). It does not imply anything in particular
+about how many Unicode characters the font actually supports.
+:p.Note that most TrueType (and OpenType) fonts are Unicode-capable, whereas
+bitmap fonts and Postscript (Type 1) fonts are not.
 :efn.
 
 .* ...........................................................................
