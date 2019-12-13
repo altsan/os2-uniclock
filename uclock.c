@@ -330,6 +330,10 @@ MRESULT EXPENTRY MainWndProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                     }
                     break;
 
+                case ID_HELP_KEYS:
+                    WinSendMsg( WinQueryHelpInstance( hwnd ), HM_KEYS_HELP, NULL, NULL );
+                    break;
+
                 case ID_ABOUT:                  // Product information dialog
                     WinDlgBox( HWND_DESKTOP, hwnd, (PFNWP) AboutDlgProc, 0, IDD_ABOUT, NULL );
                     break;
@@ -433,6 +437,9 @@ MRESULT EXPENTRY MainWndProc( HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             WinPopupMenu( HWND_DESKTOP, hwnd, pGlobal->hwndPopup, ptl.x, ptl.y, 0,
                           PU_HCONSTRAIN | PU_VCONSTRAIN | PU_KEYBOARD | PU_MOUSEBUTTON1 );
             break;
+
+        case HM_QUERY_KEYS_HELP:
+            return (MRESULT) 200;
 
         case WM_SAVEAPPLICATION:
             // This causes some kind of race condition, so we don't call it now

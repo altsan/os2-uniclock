@@ -69,6 +69,7 @@ BEGIN
     SUBMENU "~Help",                                IDM_HELP,
     BEGIN
         MENUITEM "~General help\tF1",               ID_HELP,            MIS_HELP | MIS_TEXT
+        MENUITEM "~Keys help",                      ID_HELP_KEYS,       MIS_TEXT
         MENUITEM SEPARATOR
         MENUITEM "Product information",             ID_ABOUT,           MIS_TEXT
     END

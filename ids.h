@@ -24,6 +24,7 @@
 #define IDM_HELP                    90
 #define ID_HELP                     91
 #define ID_HELP_CONTENTS            92
+#define ID_HELP_KEYS                93
 #define ID_ABOUT                    99
 
 

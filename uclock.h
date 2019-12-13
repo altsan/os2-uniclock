@@ -30,7 +30,7 @@
 // ----------------------------------------------------------------------------
 // CONSTANTS
 
-#define SZ_VERSION              "0.4"
+#define SZ_VERSION              "0.5"
 #define SZ_COPYRIGHT            "2015-2019"
 
 #define SZ_WINDOWCLASS          "UClockWindow"

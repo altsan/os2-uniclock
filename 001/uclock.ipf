@@ -96,9 +96,9 @@ Like the time display, the date format depends on the clock's localization
 settings.
 
 :p.If geographic coordinates are enabled for this clock, then clicking on the
-text in this area will toggle the display between showing the current date,
-and showing the current date's sunrise and sunset times in the configured
-location.
+text in this area (or pressing Space while this area is selected) will toggle
+the display between showing the current date, and showing the current date's
+sunrise and sunset times in the configured location.
 
 
 .* ---------------------------------------------------------------------------
@@ -115,7 +115,7 @@ clock. This can be configured in the clock settings.
 :p.:hp5.Right Area:ehp5.
 :p.The right display area shows either the current time, or the current
 date, in this clock's timezone. Clicking anywhere in the right display area
-will switch between the two.
+(or pressing Space while this area is selected) will switch between the two.
 
 :p.The exact time and date formats will depend, as always, on the clock's
 localization settings.
@@ -457,6 +457,44 @@ you can change the order of the clock panels. Clocks are shown in the same
 order in which they would appear in a single-column view, with clock 1 at
 the bottom and the highest-numbered clock at the top. The up and down
 pushbuttons will move the currently-selected clock up or down in the list.
+:edl.
+
+
+.*****************************************************************************
+:h1 x=left y=bottom width=100% height=100% res=200.Keys
+:p.The main window supports the following keyboard commands&colon.
+
+:dl tsize=15 break=fit.
+
+:dt.F1
+:dd.Show general help.
+
+:dt.F3
+:dd.Exit UniClock.
+
+:dt.Left / Up
+:dd.Select the previous (or last) display area within the clock panel that
+currently has keyboard focus. If no area is currently selected, the last
+area in the current view is selected.
+:p.Text in the currently-selected display area will appear underlined.
+
+:dt.Right / Down
+:dd.Select the next display area within the clock panel that currently
+has keyboard focus. If no area is currently selected, the first area in the
+current view (which is normally the description area) is selected.
+
+:dt.Shift+F10
+:dd.Show popup context menu.
+
+:dt.Shift+Tab
+:dd.Switch keyboard focus to the previous clock panel.
+
+:dt.Space
+:dd.Cycle the display mode of the currently-selected display area.
+
+:dt.Tab
+:dd.Switch keyboard focus to the next clock panel.
+
 :edl.
 
 
