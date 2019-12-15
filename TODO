@@ -2,14 +2,11 @@ TODOs: Universal Clock & WTDPanel
 ---------------------------------
 
 For v1.0:
-* Split uclock.c into more source files.
-* Save selected zone in clock settings.
-* Program settings: support reordering of existing clocks.
-* Keyboard support.
-* Fix drawing of borders in multiple-column layout.
 - Time conversion utility.
+- Make help file name NLS-aware.
 
 TBD:
+- Alarm.
 - XCenter widget.
 - Cairo support.
 - Program settings: default settings for new clocks (format, appearance).
